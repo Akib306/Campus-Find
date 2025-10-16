@@ -2,6 +2,9 @@ image: node:22-alpine
 
 stages: [deploy]
 
+variables:
+  PRODUCTION_URL: https://campus-find-mex9v1mjz-seemlesschat-8090s-projects.vercel.app
+
 deploy_production:
   stage: deploy
   rules:
@@ -20,3 +23,4 @@ deploy_production:
       --env SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
   environment:
     name: production
+    url: $PRODUCTION_URL
