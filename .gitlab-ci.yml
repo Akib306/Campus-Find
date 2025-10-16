@@ -7,19 +7,16 @@ deploy_production:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
   script:
-    # Optional check
+    - set -eu
     - npx -y vercel@latest whoami --token "$VERCEL_TOKEN"
-
-    # Pull project settings (uses .vercel/project.json or VERCEL_ORG_ID/PROJECT_ID)
     - npx -y vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
-
-    # Remote build on Vercel, injecting GitLab vars
-    - npx -y vercel@latest deploy --prod --token "$VERCEL_TOKEN" \
-        --build-env NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
-        --build-env NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" \
-        --build-env SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY" \
-        --env NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
-        --env NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" \
-        --env SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
+    - >
+      npx -y vercel@latest deploy --prod --token "$VERCEL_TOKEN"
+      --build-env NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"
+      --build-env NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+      --build-env SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
+      --env NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"
+      --env NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+      --env SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
   environment:
     name: production
