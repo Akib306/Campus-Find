@@ -1,0 +1,21 @@
+image: node:22-alpine
+
+stages: [deploy]
+
+deploy_production:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    # Pull project settings (uses .vercel/project.json in your repo)
+    - npx -y vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+
+    # Remote build on Vercel, but inject GitLab envs for build + runtime
+    - npx -y vercel@latest deploy --prod --token "$VERCEL_TOKEN" \
+        --build-env NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
+        --build-env NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+        --build-env SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY" \
+        --env NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
+        --env NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY"
+  environment:
+    name: production
