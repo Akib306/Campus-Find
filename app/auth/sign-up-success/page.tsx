@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/card";
 import { BaselineCheckCircleOutline } from "@/components/icons/baseline-check-circle-outline";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { WarningIcon } from "@/components/icons/warning";
 
 export default function Page(
@@ -29,11 +28,11 @@ export default function Page(
               <CardTitle className="text-2xl">
                 Check your email
               </CardTitle>
-              <CardDescription>We've sent a verifcation email to: <span className="font-bold">{email}</span></CardDescription>
+              <CardDescription> We&apos;ve sent a verification email to: <span className="font-bold">{email}</span></CardDescription>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               <div className="flex flex-row items-center gap-2">
-                <BaselineCheckCircleOutline /> Click the verifcation link in the email
+                <BaselineCheckCircleOutline /> Click the verification link in the email
               </div>
               <div className="flex flex-row items-center gap-2">
                 <BaselineCheckCircleOutline /> You will be redirected to the login page
@@ -51,7 +50,7 @@ export default function Page(
             </CardContent>
           </Card>
           <div className="flex flex-row items-center gap-2 pl-6 bg-accent/10 rounded-lg p-4 text-sm text-muted-foreground">
-            <WarningIcon /> If you don't see the email within a few minutes, check your spam folder.
+            <WarningIcon /> If you don&apos;t see the email within a few minutes, check your spam folder.
           </div>
         </div>
       </div>
