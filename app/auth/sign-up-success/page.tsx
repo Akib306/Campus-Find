@@ -5,8 +5,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { BaselineCheckCircleOutline } from "@/components/icons/baseline-check-circle-outline";
 
-export default function Page() {
+export default function Page(
+  {
+    searchParams 
+  }: 
+  { 
+    searchParams: { email: string }
+  }
+) {
+  const email: string = searchParams?.email ? searchParams.email : "";
+
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
@@ -14,9 +24,9 @@ export default function Page() {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">
-                Thank you for signing up!
+                Check your email
               </CardTitle>
-              <CardDescription>Check your email to confirm</CardDescription>
+              <CardDescription>We've sent a verifcation email to: {email}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
