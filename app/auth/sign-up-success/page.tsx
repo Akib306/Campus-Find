@@ -8,6 +8,7 @@ import {
 import { BaselineCheckCircleOutline } from "@/components/icons/baseline-check-circle-outline";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { WarningIcon } from "@/components/icons/warning";
 
 export default function Page(
   {
@@ -49,6 +50,9 @@ export default function Page(
               </Button>
             </CardContent>
           </Card>
+          <div className="flex flex-row items-center gap-2 pl-6 bg-yellow-500/10 rounded-lg p-4 text-sm text-muted-foreground">
+            <WarningIcon /> If you don't see the email within a few minutes, check your spam folder.
+          </div>
         </div>
       </div>
     </div>
