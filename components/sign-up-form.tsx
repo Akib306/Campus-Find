@@ -108,8 +108,7 @@ export function SignUpForm({
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  pattern="[A-Za-z0-9._]+"
-                  title="Password can only contain letters, numbers, underscores, and dots (A-Z, a-z, 0-9, _ , .)"
+                  title="Password must be at least 8 characters long and can only contain letters, numbers, underscores, and dots (A-Z, a-z, 0-9, _ , .)"
                 />
               </div>
               <div className="grid gap-2">
@@ -122,8 +121,7 @@ export function SignUpForm({
                   required
                   value={repeatPassword}
                   onChange={(e) => setRepeatPassword(e.target.value)}
-                  pattern="[A-Za-z0-9._]+"
-                  title="Password can only contain letters, numbers, underscores, and dots (A-Z, a-z, 0-9, _ , .)"
+                  title="Password must be at least 8 characters long and can only contain letters, numbers, underscores, and dots (A-Z, a-z, 0-9, _ , .)"
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
