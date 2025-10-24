@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useState } from "react";
+import { WarningIcon } from "./icons/warning";
 
 export function ForgotPasswordForm({
   className,
@@ -47,18 +48,34 @@ export function ForgotPasswordForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       {success ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Check Your Email</CardTitle>
-            <CardDescription>Password reset instructions sent</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              If you registered using your email and password, you will receive
-              a password reset email.
-            </p>
-          </CardContent>
-        </Card>
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Check Your Email</CardTitle>
+              <CardDescription>Password reset instructions sent</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                If you registered using your email and password, you will receive
+                a password reset email.
+              </p>
+
+              <Button className="w-full mt-4">
+                  {/* Open Outlook in a new tab */}
+                  <a
+                    href={`https://outlook.office.com/mail/inbox?exid=${encodeURIComponent(email)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open Outlook Inbox
+                  </a>
+              </Button>
+            </CardContent>
+          </Card>
+          <div className="flex flex-row items-center gap-2 pl-6 bg-yellow-500/10 rounded-lg p-4 text-sm text-muted-foreground">
+            <WarningIcon /> If you don't see the email within a few minutes, check your spam folder.
+          </div> 
+        </>
       ) : (
         <Card>
           <CardHeader>
