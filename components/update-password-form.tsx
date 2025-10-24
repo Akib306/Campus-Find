@@ -81,7 +81,7 @@ export function UpdatePasswordForm({
                   title="Password must be at least 8 characters long and can only contain letters, numbers, underscores, and dots (A-Z, a-z, 0-9, _ , .)"
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Saving..." : "Save new password"}
               </Button>

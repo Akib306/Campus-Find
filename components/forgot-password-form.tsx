@@ -72,7 +72,7 @@ export function ForgotPasswordForm({
               </Button>
             </CardContent>
           </Card>
-          <div className="flex flex-row items-center gap-2 pl-6 bg-yellow-500/10 rounded-lg p-4 text-sm text-muted-foreground">
+          <div className="flex flex-row items-center gap-2 pl-6 bg-accent/10 rounded-lg p-4 text-sm text-muted-foreground">
             <WarningIcon /> If you don't see the email within a few minutes, check your spam folder.
           </div> 
         </>
@@ -99,7 +99,7 @@ export function ForgotPasswordForm({
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
-                {error && <p className="text-sm text-red-500">{error}</p>}
+                {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Sending..." : "Send reset email"}
                 </Button>

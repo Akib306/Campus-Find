@@ -10,11 +10,11 @@ export function WarningIcon(props: SVGProps<SVGSVGElement>) {
       {...props}
     >
       <path
-        fill="yellow"
+        fill="currentColor"
         d="M240 176h32v176h-32zm0 208h32v32h-32z"
       ></path>
       <path
-        fill="yellow"
+        fill="currentColor"
         d="M274.014 16h-36.028L16 445.174V496h480v-50.826ZM464 464H48v-11.041L256 50.826l208 402.133Z"
       ></path>
     </svg>
