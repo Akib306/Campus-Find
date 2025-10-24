@@ -33,8 +33,29 @@ export function SignUpForm({
     setIsLoading(true);
     setError(null);
 
+    if (!email.endsWith("@usask.ca")) {
+      setError("Invalid email domain. Please use your @usask.ca email address.");
+      setIsLoading(false);
+      return;
+    }
+
     if (password !== repeatPassword) {
       setError("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      setIsLoading(false);
+      return;
+    }
+
+    // Enforce allowed characters: A-Z, a-z, 0-9, _, .
+    if (!/^[A-Za-z0-9._]+$/.test(password)) {
+      setError(
+        "Password can only contain letters, numbers, underscores, and dots (A-Z, a-z, 0-9, _, .)"
+      );
       setIsLoading(false);
       return;
     }
@@ -61,7 +82,7 @@ export function SignUpForm({
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Sign up</CardTitle>
-          <CardDescription>Create a new account</CardDescription>
+          <CardDescription>Sign up with your USask email</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp}>
@@ -71,7 +92,7 @@ export function SignUpForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="abc123@usask.ca"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -87,6 +108,8 @@ export function SignUpForm({
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  pattern="[A-Za-z0-9._]+"
+                  title="Password can only contain letters, numbers, underscores, and dots (A-Z, a-z, 0-9, _ , .)"
                 />
               </div>
               <div className="grid gap-2">
@@ -99,6 +122,8 @@ export function SignUpForm({
                   required
                   value={repeatPassword}
                   onChange={(e) => setRepeatPassword(e.target.value)}
+                  pattern="[A-Za-z0-9._]+"
+                  title="Password can only contain letters, numbers, underscores, and dots (A-Z, a-z, 0-9, _ , .)"
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}

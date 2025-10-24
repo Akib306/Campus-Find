@@ -30,6 +30,15 @@ export function UpdatePasswordForm({
     setIsLoading(true);
     setError(null);
 
+    // Enforce allowed characters: A-Z, a-z, 0-9, _, .
+    if (!/^[A-Za-z0-9._]+$/.test(password)) {
+      setError(
+        "Password can only contain letters, numbers, underscores, and dots (A-Z, a-z, 0-9, _, .)"
+      );
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
@@ -63,6 +72,8 @@ export function UpdatePasswordForm({
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  pattern="[A-Za-z0-9._]+"
+                  title="Password can only contain letters, numbers, underscores, and dots (A-Z, a-z, 0-9, _, .)"
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
