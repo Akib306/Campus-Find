@@ -9,15 +9,23 @@ import { BaselineCheckCircleOutline } from "@/components/icons/baseline-check-ci
 import { Button } from "@/components/ui/button";
 import { WarningIcon } from "@/components/icons/warning";
 
-export default function Page(
+export default async function Page(
   {
     searchParams 
   }: 
   { 
-    searchParams: { email: string }
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
   }
 ) {
-  const email: string = searchParams?.email ? searchParams.email : "";
+  
+  const params = await searchParams;
+  const rawEmail = params?.email;
+  let email = "";
+  if (typeof rawEmail === "string") {
+    email = rawEmail;
+  } else if (Array.isArray(rawEmail)) {
+    email = rawEmail.length > 0 ? rawEmail[0] : "";
+  }
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
