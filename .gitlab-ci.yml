@@ -79,7 +79,12 @@ deploy_production:
   needs: ["build"]
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
-  extends: .before_setup
+  before_script:
+    - apk add --no-cache libc6-compat
+    - corepack enable
+    - corepack prepare pnpm@latest --activate
+    - pnpm --version
+    - npx -y vercel@latest whoami --token "$VERCEL_TOKEN"
   script:
     - set -eu
     # target the prebuilt directory so Vercel doesn't try to re-build
