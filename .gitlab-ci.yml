@@ -3,7 +3,7 @@ image: node:22-alpine
 stages: [build, deploy]
 
 variables:
-  PRODUCTION_URL: https://campus-find-4g8q1u03q-seemlesschat-8090s-projects.vercel.app/
+  PRODUCTION_URL: https://campus-find-4g8q1u03q-seemlesschat-8090s-projects.vercel.app
   # Speed up pnpm
   PNPM_STORE_DIR: .pnpm-store
   # Make CI fail fast
@@ -21,6 +21,7 @@ cache:
     # Enable pnpm via Corepack (bundled with Node 22)
     - corepack enable
     - corepack prepare pnpm@latest --activate
+    - pnpm config set store-dir "$PNPM_STORE_DIR"
     - pnpm --version
     # Auth to Vercel & pull prod env to local files (.vercel/project.json, .env.production.local)
     - npx -y vercel@latest whoami --token "$VERCEL_TOKEN"
@@ -41,8 +42,15 @@ build:
     - pnpm run lint
 
     # --- ENV VAR CHECKS (after vercel pull writes .env.production.local) ---
-    # Export vars from .env.production.local into shell
-    - set -a; [ -f .env.production.local ] && . .env.production.local; set +a
+    # Export vars from Vercel's file into the shell (with fallback)
+    - |
+      set -a
+      if [ -f .vercel/.env.production.local ]; then
+        . .vercel/.env.production.local
+      elif [ -f .env.production.local ]; then
+        . .env.production.local
+      fi
+      set +a
     # Require these to be present for a correct Next.js build
     - |
       req_vars="NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY"
@@ -62,7 +70,8 @@ build:
 
   artifacts:
     paths:
-      - .vercel/output
+      - .vercel/
+      - .vercel/project.json
     expire_in: 1 week
 
 deploy_production:
@@ -73,8 +82,8 @@ deploy_production:
   extends: .before_setup
   script:
     - set -eu
-    # Deploy the prebuilt artifact from the previous job
-    - npx -y vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+    # target the prebuilt directory so Vercel doesn't try to re-build
+    - npx -y vercel@latest deploy .vercel/output --prebuilt --prod --token "$VERCEL_TOKEN"
   environment:
     name: production
     url: $PRODUCTION_URL
