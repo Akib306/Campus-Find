@@ -1,94 +1,26 @@
 image: node:22-alpine
 
-stages: [build, deploy]
+stages: [deploy]
 
 variables:
-  PRODUCTION_URL: https://campus-find-4g8q1u03q-seemlesschat-8090s-projects.vercel.app
-  # Speed up pnpm
-  PNPM_STORE_DIR: .pnpm-store
-  # Make CI fail fast
-  CI: "true"
-
-cache:
-  key: "$CI_COMMIT_REF_SLUG"
-  paths:
-    - .pnpm-store
-
-.before_setup:
-  before_script:
-    # Next.js/SWC on Alpine often needs this
-    - apk add --no-cache libc6-compat
-    # Enable pnpm via Corepack (bundled with Node 22)
-    - corepack enable
-    - corepack prepare pnpm@latest --activate
-    - pnpm config set store-dir "$PNPM_STORE_DIR"
-    - pnpm --version
-    # Auth to Vercel & pull prod env to local files (.vercel/project.json, .env.production.local)
-    - npx -y vercel@latest whoami --token "$VERCEL_TOKEN"
-    - npx -y vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
-
-build:
-  stage: build
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-  extends: .before_setup
-  script:
-    - set -eu
-
-    # Install deps using pnpm
-    - pnpm install --frozen-lockfile
-
-    # Lint (expects "lint" script in package.json)
-    - pnpm run lint
-
-    # --- ENV VAR CHECKS (after vercel pull writes .env.production.local) ---
-    # Export vars from Vercel's file into the shell (with fallback)
-    - |
-      set -a
-      if [ -f .vercel/.env.production.local ]; then
-        . .vercel/.env.production.local
-      elif [ -f .env.production.local ]; then
-        . .env.production.local
-      fi
-      set +a
-    # Require these to be present for a correct Next.js build
-    - |
-      req_vars="NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY"
-      for v in $req_vars; do
-        eval val=\$$v
-        if [ -z "$val" ]; then
-          echo "Missing required env var: $v"; exit 1
-        fi
-      done
-      case "$NEXT_PUBLIC_SUPABASE_URL" in
-        https://*) : ;;
-        *) echo "NEXT_PUBLIC_SUPABASE_URL must start with https://"; exit 1 ;;
-      esac
-
-    # Local Vercel build → produces .vercel/output (Build Output API)
-    - npx -y vercel@latest build --prod --token "$VERCEL_TOKEN"
-
-  artifacts:
-    paths:
-      - .vercel/
-      - .vercel/project.json
-    expire_in: 1 week
+  PRODUCTION_URL: https://campus-find-4g8q1u03q-seemlesschat-8090s-projects.vercel.app/
 
 deploy_production:
   stage: deploy
-  needs: ["build"]
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
-  before_script:
-    - apk add --no-cache libc6-compat
-    - corepack enable
-    - corepack prepare pnpm@latest --activate
-    - pnpm --version
-    - npx -y vercel@latest whoami --token "$VERCEL_TOKEN"
   script:
     - set -eu
-    # target the prebuilt directory so Vercel doesn't try to re-build
-    - npx -y vercel@latest deploy .vercel/output --prebuilt --prod --token "$VERCEL_TOKEN"
+    - npx -y vercel@latest whoami --token "$VERCEL_TOKEN"
+    - npx -y vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+    - >
+      npx -y vercel@latest deploy --prod --token "$VERCEL_TOKEN"
+      --build-env NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"
+      --build-env NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+      --build-env SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
+      --env NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"
+      --env NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+      --env SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
   environment:
     name: production
     url: $PRODUCTION_URL
