@@ -9,3 +9,21 @@ create table if not exists public.notifications (
     created_at  timestamp with time zone default now() not null -- Timestamp when the notification was created
 );
 
+-- RLS
+alter table notifications enable row level security;
+
+-- Policy: System can create notifications
+create policy "System can create notifications"
+    for insert
+    with check (true);
+
+-- Policy: Users can only see their own notifications
+create policy "Users can view own notifications"
+    on notifications 
+    for select using ( (select auth.uid()) = user_id );
+
+-- Policy: Users can mark their own notifications as read
+create policy "Users can mark own notifications as read"
+    on notifications
+    for update using ( (select auth.uid()) = user_id )
+    with check ( (select auth.uid()) = user_id ); -- Ensure that users can only update their own notifications
