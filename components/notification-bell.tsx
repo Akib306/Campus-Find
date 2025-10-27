@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,    // separator between items
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-
+import Link from "next/link";
 
 export function NotificationBell() {
 // test empty
@@ -45,6 +45,15 @@ export function NotificationBell() {
       is_read: true,
       created_at: new Date(Date.now() - 9 * 60 * 60 * 1000).toISOString() // 9 hours ago
     },
+    {
+        id: "4",
+        user_id: "random-user-id",
+        message: "Reminder: Update your lost item listing",
+        type: "in_app",
+        link: "url-to-item",
+        is_read: false,
+        created_at: new Date(Date.now() - 10 * 60  * 60 * 1000).toISOString() // 10 min ago
+    }
   ];
 
   const unreadCount = notifications.filter(n => !n.is_read).length; // Count of unread notifications
@@ -81,9 +90,7 @@ export function NotificationBell() {
             </DropdownMenuItem>
           ))
         )}
-        <DropdownMenuSeparator />
         <DropdownMenuItem className="text-center justify-center cursor-pointer">
-          View all notifications
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
