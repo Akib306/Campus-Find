@@ -40,7 +40,7 @@ export function NotificationBell() {
     { 
       id: "3", 
       user_id: "random-user-id",
-      message: "Your item has been marked as found", 
+      message: "Airpods case found near Central Park", 
       type: "email",
       link: "url-to-item",
       is_read: true,
@@ -49,7 +49,7 @@ export function NotificationBell() {
     {
         id: "4",
         user_id: "random-user-id",
-        message: "Reminder: Update your lost item listing",
+        message: "Airpods case found near Central Park",
         type: "in_app",
         link: "url-to-item",
         is_read: false,
