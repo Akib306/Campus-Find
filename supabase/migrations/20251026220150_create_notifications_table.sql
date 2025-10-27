@@ -6,7 +6,7 @@ create table if not exists public.notifications (
     type        text not null,                                  -- Type of notification: 'in_app', 'email', or 'both'
     link        text,                                           -- Deep link to the relevant listing, depending on the notification type
     is_read     boolean default false,                          -- Flag to indicate if the notification has been read
-    created_at  timestamp with time zone default now() not null -- Timestamp when the notification was created
+    created_at  timestamptz not null default now()              -- Timestamp when the notification was created
 );
 
 -- RLS
