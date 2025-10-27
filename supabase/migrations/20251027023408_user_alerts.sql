@@ -11,7 +11,7 @@ create table if not exists public.user_alerts (
 alter table user_alerts enable row level security;
 
 -- Policy: Users can manage their own alerts
-create policy "Users can manage own alerts"
+create policy "users_manage_own_alerts"
     on user_alerts
     for all
     using ( (select auth.uid()) = user_id )
