@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,    // separator between items
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from 'date-fns';
 import Link from "next/link";
 
 export function NotificationBell() {
@@ -52,7 +53,16 @@ export function NotificationBell() {
         type: "in_app",
         link: "url-to-item",
         is_read: false,
-        created_at: new Date(Date.now() - 10 * 60  * 60 * 1000).toISOString() // 10 min ago
+        created_at: new Date(Date.now() - 10 * 60  * 60 * 1000).toISOString() // 10 hours ago
+    },
+    {
+        id: "5",
+        user_id: "random-user-id",
+        message: "New message regarding your lost item",
+        type: "both",
+        link: "url-to-item",
+        is_read: false,
+        created_at: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString() // 1 day ago
     }
   ];
 
@@ -81,17 +91,19 @@ export function NotificationBell() {
           <DropdownMenuItem>No new notifications</DropdownMenuItem>
         ) : (
           notifications.map(notification => (
-            <DropdownMenuItem key={notification.id}>
-              {!notification.is_read && (<span className="h-2 w-2 bg-blue-500 rounded-full ml-2 mt-1.5" />)}
-              {notification.message}
-              <span className="text-xs text-muted-foreground mr-2">
-              {new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
+            <DropdownMenuItem key={notification.id} className="flex flex-column items-start p-2">
+                <div className="flex items-center w-full">
+                    {!notification.is_read && (<span className="h-2 w-2 bg-blue-500 rounded-full mr-2" />)}
+                    {notification.message}
+                </div> 
+                <span className="text-xs text-muted-foreground mt-1 ml-4">
+                    {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                </span>
+
             </DropdownMenuItem>
           ))
         )}
-        <DropdownMenuItem className="text-center justify-center cursor-pointer">
-        </DropdownMenuItem>
+        <DropdownMenuSeparator/>
       </DropdownMenuContent>
     </DropdownMenu>
   );
