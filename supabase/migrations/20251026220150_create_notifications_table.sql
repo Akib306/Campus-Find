@@ -14,6 +14,7 @@ alter table notifications enable row level security;
 
 -- Policy: System can create notifications
 create policy "System can create notifications"
+    on notifications
     for insert
     with check (true);
 
