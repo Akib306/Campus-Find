@@ -72,6 +72,7 @@ export function NotificationBell() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild> 
         <button className="relative p-2 hover:bg-accent rounded-md">
+
           <Bell size={20} />
 
           {/* A badge, visible only when there are unread notifications. */}
@@ -80,7 +81,9 @@ export function NotificationBell() {
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80"> 
+      {/* Dropdown content showing notifications */}
+      <DropdownMenuContent align="end" className="w-80">
+        {/* Label and separator */}
         <DropdownMenuLabel>Notifications</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {/* 
@@ -99,7 +102,6 @@ export function NotificationBell() {
                 <span className="text-xs text-muted-foreground mt-1 ml-4">
                     {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                 </span>
-
             </DropdownMenuItem>
           ))
         )}
