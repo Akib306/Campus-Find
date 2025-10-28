@@ -114,6 +114,21 @@ export function NotificationBell() {
               setNotifications(prev => [payload.new as NotificationItem, ...prev]);
           }
         )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            // Remove deleted notification
+            setNotifications(prev => 
+              prev.filter(n => n.id !== payload.old.id)
+            );
+          }
+        )
         .subscribe();
       }
     fetchNotifications();
