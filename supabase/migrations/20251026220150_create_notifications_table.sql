@@ -9,6 +9,9 @@ create table if not exists public.notifications (
     created_at  timestamptz not null default now()              -- Timestamp when the notification was created
 );
 
+-- Enable full replica identity for realtime DELETE events
+alter table notifications replica identity full;
+
 -- RLS
 alter table notifications enable row level security;
 
@@ -28,38 +31,3 @@ create policy "users_update_own_notifications"
     on notifications
     for update using ( (select auth.uid()) = user_id )
     with check ( (select auth.uid()) = user_id ); -- Ensure that users can only update their own notifications
-
--- Policy: Authenticated users can receive broadcasts
-create policy "Authenticated users can receive broadcasts"
-    on "realtime"."messages"
-    for select
-    to authenticated
-    using ( true );
-
--- Function to broadcast notification changes
-create or replace function public.notifications_changes()
-returns trigger
-security definer
-language plpgsql
-as $$
-begin
-    perform realtime.broadcast_changes(
-        'notifications:' || coalesce(NEW.user_id, OLD.user_id)::text,
-        TG_OP,
-        TG_OP,
-        TG_TABLE_NAME,
-        TG_TABLE_SCHEMA,
-        NEW,
-        OLD
-    );
-    return null;
-end;
-$$;
-
--- Trigger to call the function on notifications table changes
-drop trigger if exists handle_notifications_changes on public.notifications;
-create trigger handle_notifications_changes
-after insert or update or delete
-on public.notifications
-for each row
-execute function public.notifications_changes();
