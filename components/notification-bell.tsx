@@ -42,11 +42,13 @@ export function NotificationBell() {
   useEffect(() => {
     async function fetchNotifications() {
 
+      // Grabs the currently active user
       const {data: { user } } = await supabase.auth.getUser();
       
       // Check if user is authenticated
       if (!user) return;
       
+      // Fetch notifications for the authenticated user
       const { data } = await supabase
         .from('notifications')
         .select('*')
@@ -54,7 +56,6 @@ export function NotificationBell() {
         .order('created_at', { ascending: false });
 
       setNotifications(data || []);
-      setIsLoading(false);
 
       // Subscribe to real-time notifications
       const channel = supabase
@@ -134,7 +135,8 @@ export function NotificationBell() {
           <DropdownMenuItem>No new notifications</DropdownMenuItem>
         ) : (
           notifications.map(notification => (
-            <DropdownMenuItem key={notification.id} className="flex flex-column items-start p-2" onClick={() => markRead(notification.id)}> {/* On click of a notification object mark as read */}
+            <Link href={notification.link} key={notification.id}> 
+            <DropdownMenuItem className="flex flex-column items-start p-2" onClick={() => markRead(notification.id)}> {/* On click of a notification object mark as read */}
                 <div className="flex items-center w-full">
                     {!notification.is_read && (<span className="h-2 w-2 bg-blue-500 rounded-full mr-2" />)}
                     {notification.message}
@@ -143,6 +145,7 @@ export function NotificationBell() {
                     {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                 </span>
             </DropdownMenuItem>
+            </Link>
           ))
         )}
         <DropdownMenuSeparator/>
