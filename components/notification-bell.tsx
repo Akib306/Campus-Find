@@ -123,7 +123,7 @@ export function NotificationBell() {
         </button>
       </DropdownMenuTrigger>
       {/* Dropdown content showing notifications */}
-      <DropdownMenuContent align="end" className="w-80">
+      <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
         {/* Label and separator */}
         <DropdownMenuLabel>Notifications</DropdownMenuLabel>
         <DropdownMenuSeparator />
