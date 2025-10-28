@@ -12,6 +12,9 @@ create table if not exists public.notifications (
 -- Enable full replica identity for realtime DELETE events
 alter table notifications replica identity full;
 
+-- Enables realtime on notifications table
+alter publication supabase_realtime add table public.notifications;
+
 -- RLS
 alter table notifications enable row level security;
 
