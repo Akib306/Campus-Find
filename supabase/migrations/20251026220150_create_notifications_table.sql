@@ -52,7 +52,7 @@ begin
         NEW,
         OLD
     );
-    return coalesce(NEW, OLD);
+    return null;
 end;
 $$;
 
