@@ -28,3 +28,36 @@ create policy "users_update_own_notifications"
     on notifications
     for update using ( (select auth.uid()) = user_id )
     with check ( (select auth.uid()) = user_id ); -- Ensure that users can only update their own notifications
+
+-- Policy: Authenticated users can receive broadcasts
+create policy "Authenticated users can receive broadcasts"
+    on "realtime"."messages"
+    for select
+    to authenticated
+    using ( true );
+
+-- Trigger to handle notifications changes
+create or replace function public.notifications_changes()
+returns trigger
+security definer
+language plpgsql
+as $$
+begin
+    perform realtime.broadcast_changes(
+        'notifications:' || coalesce(NEW.notification, OLD.notification) ::text,
+        TG_OP,
+        TG_OP,
+        TG_TABLE_NAME,
+        TG_TABLE_SCHEMA,
+        NEW,
+        OLD,
+    );
+    return null;
+end;
+$$;
+
+create trigger handle_notifications_changes
+after insert or update or delete
+on public.notifications
+for each row
+execute function public.notifications_changes();
