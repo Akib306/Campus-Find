@@ -36,7 +36,7 @@ create policy "Authenticated users can receive broadcasts"
     to authenticated
     using ( true );
 
--- Trigger to handle notifications changes
+-- Function to broadcast notification changes
 create or replace function public.notifications_changes()
 returns trigger
 security definer
@@ -44,18 +44,20 @@ language plpgsql
 as $$
 begin
     perform realtime.broadcast_changes(
-        'notifications:' || coalesce(NEW.notification, OLD.notification) ::text,
+        'notifications:' || coalesce(NEW.user_id, OLD.user_id)::text,
         TG_OP,
         TG_OP,
         TG_TABLE_NAME,
         TG_TABLE_SCHEMA,
         NEW,
-        OLD,
+        OLD
     );
-    return null;
+    return coalesce(NEW, OLD);
 end;
 $$;
 
+-- Trigger to call the function on notifications table changes
+drop trigger if exists handle_notifications_changes on public.notifications;
 create trigger handle_notifications_changes
 after insert or update or delete
 on public.notifications
