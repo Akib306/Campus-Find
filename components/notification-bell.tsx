@@ -26,60 +26,17 @@ type NotificationItem = {
 };
 
 export function NotificationBell() {
-// test empty
-// const notifications = [];
-
-// Sample notifications
-  // const notifications = [
-  //   { 
-  //     id: "1", 
-  //     user_id: "random-user-id",
-  //     message: "Possible match found for your lost item", 
-  //     type: "in_app",
-  //     link: "url-to-item",
-  //     is_read: false,
-  //     created_at: new Date(Date.now() - 2 * 60 * 1000).toISOString() // 2 min ago
-  //   },
-  //   { 
-  //     id: "2", 
-  //     user_id: "random-user-id",
-  //     message: "New item posted matching your search", 
-  //     type: "both",
-  //     link: "url-to-item",
-  //     is_read: true,
-  //     created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString() // 1 hour ago
-  //   },
-  //   { 
-  //     id: "3", 
-  //     user_id: "random-user-id",
-  //     message: "Airpods case found near Central Park", 
-  //     type: "email",
-  //     link: "url-to-item",
-  //     is_read: true,
-  //     created_at: new Date(Date.now() - 9 * 60 * 60 * 1000).toISOString() // 9 hours ago
-  //   },
-  //   {
-  //       id: "4",
-  //       user_id: "random-user-id",
-  //       message: "Airpods case found near Central Park",
-  //       type: "in_app",
-  //       link: "url-to-item",
-  //       is_read: false,
-  //       created_at: new Date(Date.now() - 10 * 60  * 60 * 1000).toISOString() // 10 hours ago
-  //   },
-  //   {
-  //       user_id: "random-user-id",
-  //       message: "New message regarding your lost item",
-  //       type: "both",
-  //       link: "url-to-item",
-  //       is_read: false,
-  //       created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // 1 day ago
-  //   }
-  // ];
-
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true); 
   const supabase = createClient();
+
+  // Function to mark a notification as read
+  const markRead = async (id: string) => {
+    await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', id);
+  };
 
   // Once component has rendered in the client, fetch notifications
   useEffect(() => {
@@ -129,6 +86,21 @@ export function NotificationBell() {
             );
           }
         )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            // Update notification in state
+            setNotifications(prev => 
+              prev.map(n => n.id === payload.new.id ? (payload.new as NotificationItem) : n)
+            );
+          }
+        )
         .subscribe();
       }
     fetchNotifications();
@@ -162,7 +134,7 @@ export function NotificationBell() {
           <DropdownMenuItem>No new notifications</DropdownMenuItem>
         ) : (
           notifications.map(notification => (
-            <DropdownMenuItem key={notification.id} className="flex flex-column items-start p-2">
+            <DropdownMenuItem key={notification.id} className="flex flex-column items-start p-2" onClick={() => markRead(notification.id)}> {/* On click of a notification object mark as read */}
                 <div className="flex items-center w-full">
                     {!notification.is_read && (<span className="h-2 w-2 bg-blue-500 rounded-full mr-2" />)}
                     {notification.message}
