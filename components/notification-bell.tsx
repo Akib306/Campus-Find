@@ -73,7 +73,7 @@ export function NotificationBell() {
   //       type: "both",
   //       link: "url-to-item",
   //       is_read: false,
-  //       created_at: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString() // 1 day ago
+  //       created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // 1 day ago
   //   }
   // ];
 
@@ -83,15 +83,39 @@ export function NotificationBell() {
 
   // Once component has rendered in the client, fetch notifications
   useEffect(() => {
-    const fetchNotifications = async () => {
+    async function fetchNotifications() {
+
+      const {data: { user } } = await supabase.auth.getUser();
+      
+      // Check if user is authenticated
+      if (!user) return;
+      
       const { data } = await supabase
         .from('notifications')
-        .select('*');
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
       setNotifications(data || []);
       setIsLoading(false);
-    };
 
+      // Subscribe to real-time notifications
+      const channel = supabase
+        .channel('public:notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`  // Only YOUR notifications
+          },
+          (payload) => {
+              setNotifications(prev => [payload.new as NotificationItem, ...prev]);
+          }
+        )
+        .subscribe();
+      }
     fetchNotifications();
   }, []);
 
