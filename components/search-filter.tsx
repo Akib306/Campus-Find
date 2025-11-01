@@ -98,19 +98,7 @@ export function SearchFilter() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center px-4 py-10 transition-colors duration-300 relative">
-      {/* Optional Dark Mode Toggle */}
-      <button
-        onClick={() => document.documentElement.classList.toggle("dark")}
-        className="absolute top-6 right-6 px-3 py-1 rounded-md text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-      >
-        Toggle Dark Mode
-      </button>
-
-      <h1 className="text-3xl font-bold mb-8 text-gray-800 dark:text-gray-100 text-center">
-        Search Products
-      </h1>
-
+    <main className="min-h-screen flex flex-col items-center px-4 transition-colors duration-300 relative">
       {/* Category Tabs */}
       <div className="flex flex-wrap justify-center gap-3 mb-6">
         {["All", ...categories].map((cat) => (
