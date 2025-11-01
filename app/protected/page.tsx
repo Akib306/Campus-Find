@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { SearchFilter } from "@/components/search-filter";
 import { createClient } from "@/lib/supabase/server";
 import { InfoIcon } from "lucide-react";
 
@@ -24,6 +25,7 @@ export default async function ProtectedPage() {
         <pre className="text-xs font-mono p-3 rounded border max-h-32 overflow-auto">
           {JSON.stringify(data.claims, null, 2)}
         </pre>
+        <SearchFilter/>
       </div>
     </div>
   );
