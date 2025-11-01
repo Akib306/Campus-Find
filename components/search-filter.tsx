@@ -28,6 +28,15 @@ export function SearchFilter() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
+  const getImageSrc = (
+    candidate: string | null | undefined,
+    fallback: string
+  ): string => {
+    if (typeof candidate !== "string") return fallback;
+    const trimmed = candidate.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+  };
+
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -184,14 +193,13 @@ export function SearchFilter() {
                 onClick={() => setSelectedItem(item)} // modal trigger
                 className="cursor-pointer bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden transform hover:-translate-y-1 hover:scale-[1.03] hover:border-blue-400 transition-all duration-300 hover:shadow-2xl border border-gray-100 dark:border-gray-700"
               >
-                <div className="relative w-full h-48">
+                <div className="relative w-full aspect-[4/3]">
                   <Image
-                    src={item.image_url || "https://via.placeholder.com/300"}
+                    src={getImageSrc(item.image_url, "https://via.placeholder.com/300")}
                     alt={item.title || "Product image"}
                     fill
                     sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
                     className="object-cover"
-                    priority={false}
                   />
                 </div>
                 <div className="p-4">
@@ -247,16 +255,13 @@ export function SearchFilter() {
             >
               ✕
             </button>
-            <div className="relative w-full h-60 mb-4">
-              <Image
-                src={selectedItem.image_url || "https://via.placeholder.com/600"}
-                alt={selectedItem.title || "Product image"}
-                fill
-                sizes="90vw"
-                className="object-cover rounded-md"
-                priority
-              />
-            </div>
+            <Image
+              src={getImageSrc(selectedItem.image_url, "https://via.placeholder.com/600")}
+              alt={selectedItem.title || "Product image"}
+              width={1200}
+              height={800}
+              className="rounded-md mb-4"
+            />
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               {selectedItem.title}
             </h2>
