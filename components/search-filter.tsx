@@ -1,11 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Image from "next/image";
+
+type ProductItem = {
+  id: string;
+  image_url?: string | null;
+  title?: string | null;
+  description?: string | null;
+  category?: string | null;
+  price: number;
+};
 
 export function SearchFilter() {
-  const supabase = createClient();
-  const [items, setItems] = useState<any[]>([]);
+  const supabase = useMemo(() => createClient(), []);
+  const [items, setItems] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("All");
@@ -13,39 +23,44 @@ export function SearchFilter() {
   const [maxPrice, setMaxPrice] = useState("");
   const [sortOption, setSortOption] = useState("default");
   const [loading, setLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState<any | null>(null); // for modal
+  const [selectedItem, setSelectedItem] = useState<ProductItem | null>(null); // for modal
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
   useEffect(() => {
-    fetchItems();
-  }, []);
-
-  async function fetchItems() {
-    setLoading(true);
-    const { data, error } = await supabase.from("products").select("*");
-    if (error) console.error("Error fetching data:", error);
-    else {
-      setItems(data || []);
-      const uniqueCategories = Array.from(
-        new Set(data.map((item) => item.category?.trim()))
-      ).filter(Boolean);
-      setCategories(uniqueCategories);
-    }
-    setLoading(false);
-  }
+    let isMounted = true;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase.from("products").select("*");
+      if (error) {
+        console.error("Error fetching data:", error);
+      } else if (isMounted) {
+        const typedData = (data || []) as ProductItem[];
+        setItems(typedData);
+        const uniqueCategories = Array.from(
+          new Set(typedData.map((item) => item.category?.trim()))
+        ).filter(Boolean) as string[];
+        setCategories(uniqueCategories);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
 
   const filteredItems = items.filter((item) => {
-    const matchesSearch = item.title
-      ?.toLowerCase()
+    const title = item.title ?? "";
+    const matchesSearch = title
+      .toLowerCase()
       .includes(searchTerm.toLowerCase());
+    const itemCategory = (item.category?.trim() ?? "").toLowerCase();
     const matchesCategory =
-      category === "All" ||
-      item.category?.trim().toLowerCase() === category.toLowerCase();
-    const price = parseFloat(item.price);
-    const min = parseFloat(minPrice);
-    const max = parseFloat(maxPrice);
+      category === "All" || itemCategory === category.toLowerCase();
+    const price = Number(item.price);
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
     const matchesPrice =
       (!minPrice || price >= min) && (!maxPrice || price <= max);
     return matchesSearch && matchesCategory && matchesPrice;
@@ -58,9 +73,9 @@ export function SearchFilter() {
       case "priceHighLow":
         return b.price - a.price;
       case "titleAZ":
-        return a.title.localeCompare(b.title);
+        return (a.title ?? "").localeCompare(b.title ?? "");
       case "titleZA":
-        return b.title.localeCompare(a.title);
+        return (b.title ?? "").localeCompare(a.title ?? "");
       default:
         return 0;
     }
@@ -169,11 +184,16 @@ export function SearchFilter() {
                 onClick={() => setSelectedItem(item)} // modal trigger
                 className="cursor-pointer bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden transform hover:-translate-y-1 hover:scale-[1.03] hover:border-blue-400 transition-all duration-300 hover:shadow-2xl border border-gray-100 dark:border-gray-700"
               >
-                <img
-                  src={item.image_url || "https://via.placeholder.com/300"}
-                  alt={item.title}
-                  className="w-full h-48 object-cover"
-                />
+                <div className="relative w-full h-48">
+                  <Image
+                    src={item.image_url || "https://via.placeholder.com/300"}
+                    alt={item.title || "Product image"}
+                    fill
+                    sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover"
+                    priority={false}
+                  />
+                </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100 mb-1">
                     {item.title}
@@ -227,11 +247,16 @@ export function SearchFilter() {
             >
               ✕
             </button>
-            <img
-              src={selectedItem.image_url}
-              alt={selectedItem.title}
-              className="w-full h-60 object-cover rounded-md mb-4"
-            />
+            <div className="relative w-full h-60 mb-4">
+              <Image
+                src={selectedItem.image_url || "https://via.placeholder.com/600"}
+                alt={selectedItem.title || "Product image"}
+                fill
+                sizes="90vw"
+                className="object-cover rounded-md"
+                priority
+              />
+            </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               {selectedItem.title}
             </h2>
