@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from 'date-fns';
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 type NotificationItem = {
   id: string;
@@ -27,8 +28,7 @@ type NotificationItem = {
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true); 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // Function to mark a notification as read
   const markRead = async (id: string) => {
@@ -40,25 +40,22 @@ export function NotificationBell() {
 
   // Once component has rendered in the client, fetch notifications
   useEffect(() => {
-    async function fetchNotifications() {
+    let channel: RealtimeChannel | null = null;
+    let isMounted = true;
 
-      // Grabs the currently active user
-      const {data: { user } } = await supabase.auth.getUser();
-      
-      // Check if user is authenticated
-      if (!user) return;
-      
-      // Fetch notifications for the authenticated user
+    async function fetchNotifications() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !isMounted) return;
+
       const { data } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      setNotifications(data || []);
+      if (isMounted) setNotifications(data || []);
 
-      // Subscribe to real-time notifications
-      const channel = supabase
+      channel = supabase
         .channel('public:notifications')
         .on(
           'postgres_changes',
@@ -66,10 +63,11 @@ export function NotificationBell() {
             event: 'INSERT',
             schema: 'public',
             table: 'notifications',
-            filter: `user_id=eq.${user.id}`  // Only YOUR notifications
+            filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-              setNotifications(prev => [payload.new as NotificationItem, ...prev]);
+            if (!isMounted) return;
+            setNotifications(prev => [payload.new as NotificationItem, ...prev]);
           }
         )
         .on(
@@ -81,10 +79,8 @@ export function NotificationBell() {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            // Remove deleted notification
-            setNotifications(prev => 
-              prev.filter(n => n.id !== payload.old.id)
-            );
+            if (!isMounted) return;
+            setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
           }
         )
         .on(
@@ -96,16 +92,22 @@ export function NotificationBell() {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            // Update notification in state
-            setNotifications(prev => 
-              prev.map(n => n.id === payload.new.id ? (payload.new as NotificationItem) : n)
-            );
+            if (!isMounted) return;
+            setNotifications(prev => prev.map(n => n.id === payload.new.id ? (payload.new as NotificationItem) : n));
           }
         )
         .subscribe();
-      }
+    }
+
     fetchNotifications();
-  }, []);
+
+    return () => {
+      isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [supabase]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length; // Count of unread notifications
 
