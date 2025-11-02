@@ -6,6 +6,11 @@ import { MessagingService, Conversation } from '@/lib/messaging-service';
 import { MessagingConversationList } from '@/components/messaging-conversation-list';
 import { MessagingChatInterface } from '@/components/messaging-chat-interface';
 
+// TEMPORARY DEMO: This messaging page is for testing only
+// For integration: 
+// - Replace TEMPORARY_TEST_POST_ID with actual post_id from posts table
+// - Use different user IDs for user1_id (post owner) and user2_id (claimant)
+
 export default function MessagingPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -37,14 +42,14 @@ export default function MessagingPage() {
     if (!user) return;
 
     try {
-      // Create a test conversation (you'll need to replace with a real item_id later)
-      const testItemId = 'test-item-id'; // This will be replaced when you integrate with items
-      const otherUserId = user.id; // For demo, using same user as both parties
+      // TEMPORARY: For demo only - replace with real post_id when integrating
+      // This creates a conversation with the same user as both parties
+      const TEMPORARY_TEST_POST_ID = '00000000-0000-0000-0000-000000000000';
       
       const { conversation } = await MessagingService.claimItem(
-        testItemId,
-        user.id,
-        otherUserId
+        TEMPORARY_TEST_POST_ID,
+        user.id,  // user1_id (post owner)
+        user.id   // user2_id (claimant) - same user for demo
       );
       
       setConversations(prev => [conversation, ...prev]);
