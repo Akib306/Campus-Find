@@ -26,3 +26,4 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 ### Notes 
 - Currently, in-app notifications only work with database events(INSERT, UPDATE, DELETE) directed to a specific user (as intended).
 - A future update will have a new feature to implement listening for specific listings that match what the user is looking for, allowing
+for more automated notification triggers.
