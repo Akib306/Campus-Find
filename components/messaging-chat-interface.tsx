@@ -137,7 +137,7 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
     );
   };
 
-  if (loading) return <div className="p-4">Loading messages...</div>;
+  if (loading) return <div className="p-4 text-gray-900">Loading messages...</div>;
 
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
@@ -146,20 +146,20 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
       {/* Messages Area */}
       <div className="flex-1 p-4 overflow-y-auto">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-500">No messages yet. Start the conversation!</div>
+          <div className="text-center text-gray-900">No messages yet. Start the conversation!</div>
         ) : (
           <div className="space-y-3">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`p-3 rounded-lg max-w-xs ${
+                className={`p-3 rounded-lg max-w-xs text-gray-900 ${
                   message.sender_id === conversation.user1_id 
                     ? 'bg-blue-100 ml-auto' 
                     : 'bg-gray-100'
                 }`}
               >
                 <div className="text-sm">{message.display_text}</div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-gray-600 mt-1">
                   {new Date(message.created_at).toLocaleTimeString()}
                 </div>
               </div>
