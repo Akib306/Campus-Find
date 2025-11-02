@@ -7,6 +7,18 @@ const __dirname = path.dirname(__filename);
 
 const nextConfig: NextConfig = {
   /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "i.postimg.cc",
+      },
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com",
+      },
+    ],
+  },
   turbopack: {
     root: __dirname,
   },

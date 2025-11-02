@@ -73,7 +73,7 @@ export function ForgotPasswordForm({
             </CardContent>
           </Card>
           <div className="flex flex-row items-center gap-2 pl-6 bg-accent/10 rounded-lg p-4 text-sm text-muted-foreground">
-            <WarningIcon /> If you don't see the email within a few minutes, check your spam folder.
+            <WarningIcon /> If you don&apos;t see the email within a few minutes, check your spam folder.
           </div> 
         </>
       ) : (

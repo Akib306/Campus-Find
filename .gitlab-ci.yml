@@ -3,7 +3,7 @@ image: node:22-alpine
 stages: [deploy]
 
 variables:
-  PRODUCTION_URL: https://campus-find-mex9v1mjz-seemlesschat-8090s-projects.vercel.app
+  PRODUCTION_URL: https://campus-find-4g8q1u03q-seemlesschat-8090s-projects.vercel.app/
 
 deploy_production:
   stage: deploy
