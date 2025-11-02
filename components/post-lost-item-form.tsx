@@ -60,14 +60,14 @@ export function PostLostItemForm({
 
     try {
       const file = fileInputRef.current?.files?.[0];
-      let photoUrl = null;
+      let imagePaths: string[] = [];
 
       // Upload file if provided
       if (file) {
         const filePath = "public/" + Date.now() + "_" + file.name;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("item_photos")
+          .from("post-images")
           .upload(filePath, file);
 
         if (uploadError) {
@@ -77,21 +77,31 @@ export function PostLostItemForm({
 
         // Get public URL
         const { data: urlData } = supabase.storage
-          .from("item_photos")
+          .from("post-images")
           .getPublicUrl(uploadData.path);
 
-        photoUrl = urlData.publicUrl;
+        imagePaths = [urlData.publicUrl];
+      }
+
+      // Get current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("You must be logged in to post items");
       }
 
       // Insert into database
-      const { error: itemError } = await supabase.from("lost_items").insert([
+      const { error: itemError } = await supabase.from("posts").insert([
         {
+          user_id: user.id,
           item_name: itemName,
           description: description,
-          category: category,
-          last_seen: lastSeen,
-          date_found: dateFound,
-          photo_url: photoUrl,
+          post_type: "lost",
+          item_category: category,
+          location_name: lastSeen,
+          image_path: imagePaths,
+          post_status: "open",
         },
       ]);
 
@@ -157,13 +167,18 @@ export function PostLostItemForm({
             {/* Category */}
             <div className="flex flex-col gap-2">
               <Label htmlFor="category">Category</Label>
-              <Input
+              <select
                 id="category"
-                type="text"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 required
-              />
+              >
+                <option value="">Select a category</option>
+                <option value="electronic">Electronic</option>
+                <option value="stationery">Stationery</option>
+                <option value="book">Book</option>
+                <option value="clothing">Clothing</option>
+              </select>
             </div>
 
             {/* Last Seen */}
