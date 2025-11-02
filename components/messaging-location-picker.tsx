@@ -34,7 +34,7 @@ export function MessagingLocationPicker({ isOpen, onClose, onLocationSelect }: M
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-80 max-w-sm">
+      <div className="bg-white rounded-lg p-6 w-80 max-w-sm text-gray-900">
         <h3 className="text-lg font-semibold mb-4">Choose Pickup Location</h3>
         
         {loading ? (
@@ -44,7 +44,7 @@ export function MessagingLocationPicker({ isOpen, onClose, onLocationSelect }: M
             {locations.map((location) => (
               <button
                 key={location.id}
-                className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-gray-50 focus:bg-gray-50 focus:outline-none text-gray-900"
                 onClick={() => onLocationSelect(location)}
               >
                 <div className="font-medium">{location.display_text}</div>
