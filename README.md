@@ -24,6 +24,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 - `pnpm lint`: Lint the code
 
 ### Notes 
-- Currently, in-app notifications only work with database events(INSERT, UPDATE, DELETE) directed to a specific user (as intended).
+- Currently, in-app notifications only work with database events(INSERT, UPDATE, DELETE) directed to a specific user. These events
+will trigger and update the notification bell in real-time within the client (as intended).
 - A future update will have a new feature to implement listening for specific listings that match what the user is looking for, allowing
 for more automated notification triggers.
