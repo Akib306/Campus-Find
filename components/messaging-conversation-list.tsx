@@ -33,11 +33,11 @@ export function MessagingConversationList({ onSelectConversation, currentConvers
     }
   };
 
-  if (loading) return <div className="p-4">Loading conversations...</div>;
+  if (loading) return <div className="p-4 text-gray-900">Loading conversations...</div>;
 
   if (conversations.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500">
+      <div className="p-4 text-center text-gray-900">
         No conversations yet. Claim an item to start messaging!
       </div>
     );
@@ -48,7 +48,7 @@ export function MessagingConversationList({ onSelectConversation, currentConvers
       {conversations.map((conversation) => (
         <div
           key={conversation.id}
-          className={`p-4 border rounded-lg cursor-pointer hover:bg-gray-50 ${
+          className={`p-4 border rounded-lg cursor-pointer hover:bg-gray-50 text-gray-900 ${
             conversation.id === currentConversationId ? 'bg-blue-50 border-blue-200' : 'border-gray-200'
           }`}
           onClick={() => onSelectConversation(conversation)}
@@ -56,7 +56,7 @@ export function MessagingConversationList({ onSelectConversation, currentConvers
           <div className="font-semibold text-sm">
             Conversation about Item
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-600 mt-1">
             Last updated: {new Date(conversation.updated_at).toLocaleDateString()}
           </div>
           <div className={`text-xs mt-1 ${
