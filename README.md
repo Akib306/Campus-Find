@@ -1,4 +1,5 @@
 # CampusFind
+PRODUCTION_URL: https://campus-find-three.vercel.app/
 
 ## Quick Start
 ```bash
