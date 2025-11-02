@@ -109,6 +109,23 @@ export function NotificationBell() {
     };
   }, [supabase]);
 
+  async function createNotification() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+      await supabase
+        .from('notifications')
+        .insert([
+          {
+            user_id: user.id,
+            message: "This is a test notification",
+            type: "in-app",
+            link: "/listings/test1",
+            is_read: false,
+            created_at: new Date().toISOString(),
+          }
+        ]);
+    }
   const unreadCount = notifications.filter(n => !n.is_read).length; // Count of unread notifications
 
   return (
@@ -151,6 +168,7 @@ export function NotificationBell() {
           ))
         )}
         <DropdownMenuSeparator/>
+        <button className="p-2 hover:bg-accent bg-emerald-600 rounded-md" onClick={createNotification}>Create Notification</button>
       </DropdownMenuContent>
     </DropdownMenu>
   );
