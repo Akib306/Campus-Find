@@ -61,7 +61,7 @@ export default function MessagingPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen text-gray-900">
         <div className="text-lg">Loading...</div>
       </div>
     );
@@ -69,14 +69,14 @@ export default function MessagingPage() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen text-gray-900">
         <div className="text-lg">Please log in to test messaging</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <div className="container mx-auto p-6 max-w-6xl text-gray-900">
       <h1 className="text-3xl font-bold mb-2">Messaging Feature</h1>
       <p className="text-gray-600 mb-6">
         Menu-based messaging system for CampusFind
