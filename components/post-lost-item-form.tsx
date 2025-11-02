@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+
 import {
   Card,
   CardContent,
@@ -10,6 +11,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -167,18 +177,17 @@ export function PostLostItemForm({
             {/* Category */}
             <div className="flex flex-col gap-2">
               <Label htmlFor="category">Category</Label>
-              <select
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                required
-              >
-                <option value="">Select a category</option>
-                <option value="electronic">Electronic</option>
-                <option value="stationery">Stationery</option>
-                <option value="book">Book</option>
-                <option value="clothing">Clothing</option>
-              </select>
+              <Select value={category} onValueChange={setCategory} required>
+                <SelectTrigger id="category" className="w-full bg-background">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="electronic">Electronic</SelectItem>
+                  <SelectItem value="stationery">Stationery</SelectItem>
+                  <SelectItem value="book">Book</SelectItem>
+                  <SelectItem value="clothing">Clothing</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Last Seen */}
