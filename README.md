@@ -1,7 +1,9 @@
 # CampusFind
 
 ## PRODUCTION_URL: https://campus-find-three.vercel.app/
+
 To test search and notification go to /protected
+
 To test messaging go to /messaging
 
 ## Quick Start
