@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Conversation } from '@/lib/messaging-service';
 import { MessagingConversationList } from '@/components/messaging-conversation-list';
@@ -12,24 +13,21 @@ import { MessagingChatInterface } from '@/components/messaging-chat-interface';
 // - Use different user IDs for user1_id (post owner) and user2_id (claimant)
 
 export default function MessagingPage() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUserAndConversations();
+    loadUser();
   }, []);
 
-  const loadUserAndConversations = async () => {
+  const loadUser = async () => {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
         setUser(user);
-        const userConversations = await MessagingService.getUserConversations(user.id);
-        setConversations(userConversations);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -52,7 +50,6 @@ export default function MessagingPage() {
         user.id   // user2_id (claimant) - same user for demo
       );
       
-      setConversations(prev => [conversation, ...prev]);
       setSelectedConversation(conversation);
     } catch (error) {
       console.error('Error creating test conversation:', error);
@@ -122,11 +119,11 @@ export default function MessagingPage() {
       <div className="mt-8 p-4 bg-blue-50 rounded-lg">
         <h3 className="font-semibold mb-2">How to use:</h3>
         <ol className="list-decimal list-inside space-y-1 text-sm">
-          <li>Click "Test Conversation" to create a new conversation</li>
-          <li>Click "Arrange Pickup" to open the menu-based messaging</li>
+          <li>Click &quot;Test Conversation&quot; to create a new conversation</li>
+          <li>Click &quot;Arrange Pickup&quot; to open the menu-based messaging</li>
           <li>Select a location and time slot</li>
-          <li>Use the "Confirm" or "Suggest Alternative" buttons</li>
-          <li>Try the "Share Contact" feature</li>
+          <li>Use the &quot;Confirm&quot; or &quot;Suggest Alternative&quot; buttons</li>
+          <li>Try the &quot;Share Contact&quot; feature</li>
         </ol>
       </div>
     </div>

@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { MessagingService, Message, Conversation, PickupOption } from '@/lib/messaging-service';
 import { MessagingLocationPicker } from './messaging-location-picker';
 import { MessagingTimePicker } from './messaging-time-picker';
@@ -18,15 +17,7 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
   const [selectedLocation, setSelectedLocation] = useState<PickupOption | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    loadMessages();
-  }, [conversation.id]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
       const conversationMessages = await MessagingService.getConversationMessages(conversation.id);
       setMessages(conversationMessages);
@@ -35,7 +26,17 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
     } finally {
       setLoading(false);
     }
-  };
+  }, [conversation.id]);
+
+  useEffect(() => {
+    loadMessages();
+  }, [loadMessages]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
