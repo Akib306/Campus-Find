@@ -3,6 +3,7 @@ import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { hasEnvVars } from "@/lib/utils";
 import { NotificationBell } from "@/components/notification-bell";
+import { AlertButton } from "@/components/alert-button";
 import Link from "next/link";
 
 export default function ProtectedLayout({
@@ -24,7 +25,7 @@ export default function ProtectedLayout({
               </div>)}
           </div>
         </nav>
-        
+        <AlertButton/>
         <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
           {children}
         </div>
