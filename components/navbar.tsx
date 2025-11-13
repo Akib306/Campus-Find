@@ -6,6 +6,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { AuthButton } from "@/components/auth-button";
 import { EnvVarWarning } from "@/components/env-var-warning";
 import { hasEnvVars } from "@/lib/utils";
+import { NewPostButton } from "./new-post-button";
 
 export async function Navbar() {
   return (
@@ -24,8 +25,9 @@ export async function Navbar() {
             <EnvVarWarning />
           ) : (
             <>
-              <NotificationBell />
+              <NewPostButton />
               <AuthButton />
+              <NotificationBell />
             </>
           )}
         </div>
