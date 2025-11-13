@@ -1,6 +1,6 @@
 "use client";
 import { SearchIcon } from "lucide-react"
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   InputGroup,
   InputGroupAddon,
@@ -13,13 +13,19 @@ export function Search() {
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      // Support ⌘K (mac) and Ctrl+K (win/linux)
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        searchInputRef.current?.focus();
-        searchInputRef.current?.querySelector<HTMLInputElement>(
-          "input[data-slot='input-group-control']",
-        )?.select();
+  
+        const input = searchInputRef.current
+          ?.querySelector<HTMLInputElement>("input[data-slot='input-group-control']");
+  
+        if (!input) return;
+  
+        if (document.activeElement === input) {
+          input.blur();
+        } else {
+          input.select();
+        }
       }
     }
     window.addEventListener("keydown", onKeyDown);
