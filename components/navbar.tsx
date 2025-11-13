@@ -5,6 +5,7 @@ import { AuthButton } from "@/components/auth-button";
 import { EnvVarWarning } from "@/components/env-var-warning";
 import { hasEnvVars } from "@/lib/utils";
 import { NewPostButton } from "./new-post-button";
+import { NotificationBell } from "./notification-bell";
 
 export async function Navbar() {
   return (
@@ -24,6 +25,7 @@ export async function Navbar() {
           ) : (
             <>
               <NewPostButton />
+              <NotificationBell />
               <AuthButton />
             </>
           )}
