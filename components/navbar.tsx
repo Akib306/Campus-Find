@@ -1,8 +1,6 @@
 
 import Link from "next/link";
 import { Search } from "@/components/search";
-import { NotificationBell } from "@/components/notification-bell";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { AuthButton } from "@/components/auth-button";
 import { EnvVarWarning } from "@/components/env-var-warning";
 import { hasEnvVars } from "@/lib/utils";
@@ -20,14 +18,13 @@ export async function Navbar() {
         <div className="justify-self-center w-full">
           <Search />
         </div>
-        <div className="justify-self-end flex items-center">
+        <div className="justify-self-end flex items-center gap-2">
           {!hasEnvVars ? (
             <EnvVarWarning />
           ) : (
             <>
               <NewPostButton />
               <AuthButton />
-              <NotificationBell />
             </>
           )}
         </div>

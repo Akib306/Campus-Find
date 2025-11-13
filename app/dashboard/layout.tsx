@@ -1,7 +1,4 @@
-import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { NotificationBell } from "@/components/notification-bell";
-import Link from "next/link";
 import { Navbar } from "@/components/navbar";
 
 export default function ProtectedLayout({
