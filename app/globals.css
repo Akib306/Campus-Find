@@ -73,13 +73,13 @@
     /* USask Primary (Green #006341 -> hsl(158, 100%, 19%)) */
     --primary: 158 100% 19%;
     --primary-foreground: 0 0% 98%;
-    /* USask Gold (#FFCC00 -> hsl(48, 100%, 50%)) */
-    --secondary: 48 100% 50%;
+    /* Secondary: soft neutral gray for subtle emphasis on light background */
+    --secondary: 0 0% 92%;
     --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
-    /* Use Gold as accent */
-    --accent: 48 100% 50%;
+    /* Accent: slightly stronger neutral than secondary for highlights */
+    --accent: 0 0% 88%;
     --accent-foreground: 0 0% 9%;
     /* Destructive (brand-adjacent red #E03C31 -> hsl(4, 74%, 53%)) */
     --destructive: 4 74% 53%;
@@ -98,21 +98,22 @@
   }
   .dark {
     --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    --foreground: 0 0% 90%;
+    --card: 0 0% 10%;
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
     /* Keep green as primary in dark, slightly lighter for contrast */
     --primary: 158 100% 30%;
     --primary-foreground: 0 0% 98%;
-    /* Gold for secondary/accent remains the same for brand consistency */
-    --secondary: 48 100% 50%;
-    --secondary-foreground: 0 0% 9%;
+    /* Secondary: dark neutral for controls in dark mode */
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 95%;
     --muted: 0 0% 14.9%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 48 100% 50%;
-    --accent-foreground: 0 0% 9%;
+    /* Accent: slightly lighter neutral than secondary for subtle contrast */
+    --accent: 0 0% 30%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 4 74% 53%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
