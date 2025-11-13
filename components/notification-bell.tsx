@@ -131,7 +131,7 @@ export function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild> 
-        <button className="relative p-2 hover:bg-accent rounded-md">
+        <button className="relative p-2 hover:bg-emerald-600 rounded-md">
 
           <Bell size={20} />
 
