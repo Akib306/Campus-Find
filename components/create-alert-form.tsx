@@ -14,14 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 
-type CreateAlertFormProps = {
-    onAlertCreated?: () => void;
-};
-
-export function CreateAlertForm({ onAlertCreated }: CreateAlertFormProps) {
+export function CreateAlertForm({  }: ) {
     const [category, setCategory] = useState("");
     const [keyword, setKeyword] = useState("");
-    const [location, setLocation] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     // categories for alerts
@@ -61,7 +56,6 @@ export function CreateAlertForm({ onAlertCreated }: CreateAlertFormProps) {
             // Reset form
             setCategory("");
             setKeyword("");
-            setLocation("");
             
             window.location.reload();
         } catch (error: unknown) {
