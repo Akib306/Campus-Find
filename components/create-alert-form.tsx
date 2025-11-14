@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState, useEffect, JSX } from "react";
 
-export function CreateAlertForm({  }: ) {
+export function CreateAlertForm(): JSX.Element {
     const [category, setCategory] = useState("");
     const [keyword, setKeyword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -112,3 +112,4 @@ export function CreateAlertForm({  }: ) {
     </div>
   );
 }
+
