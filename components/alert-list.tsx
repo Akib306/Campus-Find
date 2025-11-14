@@ -70,7 +70,12 @@ export function AlertList() {
     <div className={cn("flex justify-center w-full")}>
       <Card className="w-full max-w-3xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Active Alerts</CardTitle>
+          <CardTitle className="text-2xl flex items-center gap-2">
+            Active Alerts
+            <span className="text-sm font-normal text-muted-foreground">
+              ({alerts.length}/5)
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="max-h-[600px] overflow-y-auto">
             { loading ? (
