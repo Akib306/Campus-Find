@@ -25,17 +25,18 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import { PlusIcon } from "lucide-react";
 
 const defaultImageSrc = "./project-screenshot.png";
+const MAX_IMAGES = 5;
 
 export function NewPostForm() {
   const [itemName, setItemName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [locationName, setLocationName] = useState("");
-  const [imagePreview, setImagePreview] = useState(defaultImageSrc);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -43,23 +44,48 @@ export function NewPostForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setImagePreview(defaultImageSrc);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setImagePreview(defaultImageSrc);
+    const newFiles = Array.from(e.target.files ?? []);
+    if (newFiles.length === 0) return;
+    setError(null);
+    setSelectedFiles((prev) => {
+      const available = MAX_IMAGES - prev.length;
+      if (available <= 0) {
+        setError(`You can upload up to ${MAX_IMAGES} images.`);
+        return prev;
+      }
+      const filesToAdd = newFiles.slice(0, available);
+      return [...prev, ...filesToAdd];
+    });
+    setImagePreviews((prev) => {
+      const available = MAX_IMAGES - prev.length;
+      if (available <= 0) return prev;
+      const previewsToAdd = newFiles
+        .slice(0, available)
+        .map((f) => URL.createObjectURL(f));
+      return [...prev, ...previewsToAdd];
+    });
+    // Allow selecting the same file again by resetting input value
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const handleClearImages = () => {
+    imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    setImagePreviews([]);
+    setSelectedFiles([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveImageAtIndex = (index: number) => {
+    const nextPreviews = [...imagePreviews];
+    const [removed] = nextPreviews.splice(index, 1);
+    if (removed) URL.revokeObjectURL(removed);
+    setImagePreviews(nextPreviews);
+    const nextFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(nextFiles);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,30 +96,11 @@ export function NewPostForm() {
     setSuccess(false);
 
     try {
-      const file = fileInputRef.current?.files?.[0];
-      let imagePaths: string[] = [];
-
-      // Upload file if provided
-      if (file) {
-        const filePath = "public/" + Date.now() + "_" + file.name;
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("post-images")
-          .upload(filePath, file);
-
-        if (uploadError) {
-          console.error("Error uploading file:", uploadError.message);
-          throw uploadError;
-        }
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from("post-images")
-          .getPublicUrl(uploadData.path);
-
-        imagePaths = [urlData.publicUrl];
+      if (selectedFiles.length > MAX_IMAGES) {
+        setError(`You can upload up to ${MAX_IMAGES} images.`);
+        setIsLoading(false);
+        return;
       }
-
       // Get current user
       const {
         data: { user },
@@ -102,22 +109,78 @@ export function NewPostForm() {
         throw new Error("You must be logged in to post items");
       }
 
-      // Insert into database
-      const { error: itemError } = await supabase.from("posts").insert([
-        {
-          user_id: user.id,
-          item_name: itemName,
-          description: description,
-          item_category: category,
-          location_name: locationName,
-          image_path: imagePaths,
-          post_status: "open",
-        },
-      ]);
+      // Step 1: Create the post first (without images) to get a post ID
+      const { data: insertedPost, error: insertError } = await supabase
+        .from("posts")
+        .insert([
+          {
+            user_id: user.id,
+            item_name: itemName,
+            description: description,
+            item_category: category,
+            location_name: locationName,
+            image_path: [],
+            post_status: "open",
+          },
+        ])
+        .select("id")
+        .single();
 
-      if (itemError) {
-        console.error("Error saving item:", itemError.message);
-        throw itemError;
+      if (insertError || !insertedPost) {
+        throw new Error(insertError?.message || "Failed to create post");
+      }
+
+      const postId = insertedPost.id as string;
+
+      // Step 2: Upload all selected images (if any) to storage under {postId}/
+      const uploadedPaths: string[] = [];
+      if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          const extension =
+            file.name.includes(".") ? file.name.split(".").pop() : undefined;
+          const uniqueName = `${crypto.randomUUID()}${extension ? `.${extension}` : ""}`;
+          const storagePath = `public/${postId}/${uniqueName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("post-images")
+            .upload(storagePath, file, {
+              cacheControl: "3600",
+              upsert: false,
+              contentType: file.type,
+            });
+
+          if (uploadError) {
+            // Rollback: remove any previously uploaded files and delete the post
+            if (uploadedPaths.length > 0) {
+              await supabase.storage.from("post-images").remove(uploadedPaths);
+            }
+            await supabase.from("posts").delete().eq("id", postId);
+            throw new Error(uploadError.message);
+          }
+
+          uploadedPaths.push(storagePath);
+        }
+      }
+
+      // Step 3: Resolve public URLs for all uploaded images
+      const publicUrls: string[] = uploadedPaths.map((p) => {
+        const { data } = supabase.storage.from("post-images").getPublicUrl(p);
+        return data.publicUrl;
+      });
+
+      // Step 4: Update the post with the image URL array
+      const { error: updateError } = await supabase
+        .from("posts")
+        .update({ image_path: publicUrls })
+        .eq("id", postId);
+
+      if (updateError) {
+        // Rollback storage and the post if update fails
+        if (uploadedPaths.length > 0) {
+          await supabase.storage.from("post-images").remove(uploadedPaths);
+        }
+        await supabase.from("posts").delete().eq("id", postId);
+        throw new Error(updateError.message);
       }
 
       // Success
@@ -127,7 +190,7 @@ export function NewPostForm() {
       setDescription("");
       setCategory("");
       setLocationName("");
-      setImagePreview(defaultImageSrc);
+      handleClearImages();
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -209,26 +272,51 @@ export function NewPostForm() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleFileChange}
               />
-              {imagePreview && (
+              {imagePreviews.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {imagePreviews.map((src, idx) => (
+                    <div key={src} className="relative">
+                      <img
+                        src={src}
+                        alt={`Preview ${idx + 1}`}
+                        className="w-full h-32 object-cover rounded border"
+                      />
+                      <div className="mt-2">
+                        <Button
+                          type="button"
+                          onClick={() => handleRemoveImageAtIndex(idx)}
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
                 <div className="relative inline-block">
                   <img
-                    src={imagePreview}
+                    src={defaultImageSrc}
                     alt="Preview"
                     className="max-w-xs max-h-48 object-contain rounded border"
                   />
-                  {imagePreview !== defaultImageSrc && (
-                    <Button
-                      type="button"
-                      onClick={handleRemoveImage}
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                    >
-                      Remove Image
-                    </Button>
-                  )}
+                </div>
+              )}
+              {imagePreviews.length > 0 && (
+                <div>
+                  <Button
+                    type="button"
+                    onClick={handleClearImages}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Clear All Images
+                  </Button>
                 </div>
               )}
             </div>
