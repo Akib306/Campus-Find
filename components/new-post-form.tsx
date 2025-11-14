@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusIcon } from "lucide-react";
+import { toast } from "sonner";
 
 const defaultImageSrc = "./project-screenshot.png";
 const MAX_IMAGES = 5;
@@ -203,6 +204,19 @@ export function NewPostForm() {
     }
   };
 
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (success) {
+      toast.success("Lost item posted successfully!");
+      console.log("Lost item posted successfully!");
+    }
+  }, [success]);
+
   return (
     <div className="w-full">
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -320,12 +334,6 @@ export function NewPostForm() {
                 </div>
               )}
             </div>
-            {error && <div className="text-red-500 text-sm">{error}</div>}
-            {success && (
-              <div className="text-green-500 text-sm">
-                Lost item posted successfully!
-              </div>
-            )}
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="secondary">
