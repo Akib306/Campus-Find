@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 
-import { SearchFilter } from "@/components/search-filter";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ProtectedPage() {
@@ -12,8 +11,8 @@ export default async function ProtectedPage() {
   }
 
   return (
-    <div className="flex-1 w-full flex flex-col">
-      <SearchFilter/>
-    </div>
+    <>
+    
+    </>
   );
 }
