@@ -1,7 +1,6 @@
 import { LogoutButton } from "../logout-button";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu";
-import { NotificationBell } from "../notification-bell";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./dropdown-menu";
 
 type NavAvatarUser = {
   email: string;
@@ -22,13 +21,12 @@ export function NavAvatar({ user }: { user: NavAvatarUser }) {
             <AvatarFallback>{fallback}</AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem>
-            <NotificationBell />
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <LogoutButton />
-          </DropdownMenuItem>
+        <DropdownMenuContent side="bottom" align="end" className="bg-card">
+            <DropdownMenuLabel>Hey, {user.email}!</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="justify-start">
+              <LogoutButton />
+            </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       
