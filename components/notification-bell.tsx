@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { Button } from "./ui/button";
 
 type NotificationItem = {
   id: string;
@@ -131,18 +132,17 @@ export function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild> 
-        <button className="relative p-2 hover:bg-accent rounded-md">
+        <Button variant="ghost" className="relative px-0 hover:bg-accent rounded-md">
 
-          <Bell size={20} />
-
+          <Bell className="size-8" />
           {/* A badge, visible only when there are unread notifications. */}
           {unreadCount > 0 && (
             <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">{unreadCount}</Badge>
           )}
-        </button>
+        </Button>
       </DropdownMenuTrigger>
       {/* Dropdown content showing notifications */}
-      <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+      <DropdownMenuContent side="bottom" align="end" className="w-80 max-h-96 overflow-y-auto bg-card ">
         {/* Label and separator */}
         <DropdownMenuLabel>Notifications</DropdownMenuLabel>
         <DropdownMenuSeparator />
