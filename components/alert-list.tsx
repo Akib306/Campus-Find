@@ -16,8 +16,8 @@ import { Trash2 } from "lucide-react";
 type AlertItem = {
     id: string;
     user_id: string;
-    category: string;
-    keyword: string;
+    categories: string;
+    keywords: string[];
     created_at: string;
 };
 export function AlertList() {
@@ -67,8 +67,8 @@ export function AlertList() {
 
 
   return (
-    <div className={cn("flex flex-row gap-6")}>
-      <Card>
+    <div className={cn("flex justify-center w-full")}>
+      <Card className="w-full max-w-3xl">
         <CardHeader>
           <CardTitle className="text-2xl">Active Alerts</CardTitle>
         </CardHeader>
@@ -81,14 +81,14 @@ export function AlertList() {
                 <div className="space-y-4">
                     {alerts.map((alert) => (
                         <Card key={alert.id}>
-                            <CardContent>
-                                <div className="flex items-start justify-between gap-4">
+                            <CardContent className="pt-6">
+                                <div className="flex items-start justify-between gap-4 p-4">
                                     {/* Alert Details */}
                                     <div className="flex-1 space-y-1">
-                                        <h3 className="font-semibold">{alert.category}</h3>
-                                        {alert.keyword && (
+                                        <h3 className="font-semibold">{alert.categories}</h3>
+                                        {alert.keywords && alert.keywords.length > 0 && (
                                             <p className="text-sm text-muted-foreground">
-                                                Keywords: {alert.keyword}
+                                                Keywords: {alert.keywords.join(', ')}
                                             </p>
                                         )}
                                         <p className="text-xs text-muted-foreground">
