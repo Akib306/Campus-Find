@@ -39,6 +39,20 @@ export function CreateAlertForm(): JSX.Element {
             if (!user) 
                 throw new Error("User not authenticated");
 
+            // Check current alert count
+            const { count } = await supabase
+                .from('user_alerts')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id);
+
+            const MAX_ALERTS = 5; // Limit to 5 alerts per user
+            
+            if (count !== null && count >= MAX_ALERTS) {
+                alert(`You can only have ${MAX_ALERTS} active alerts. Please delete an existing alert first.`);
+                setIsLoading(false);
+                return;
+            }
+
             // Split keywords by comma and trim whitespace
             const keywordsArray = keyword.split(',').map(k => k.trim()).filter(k => k);
 
