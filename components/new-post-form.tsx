@@ -30,10 +30,7 @@ import { PlusIcon } from "lucide-react";
 
 const defaultImageSrc = "./project-screenshot.png";
 
-export function NewPostForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+export function NewPostForm() {
   const [itemName, setItemName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -144,19 +141,21 @@ export function NewPostForm({
   };
 
   return (
-    <div className={cn("flex flex-col", className)} {...props}>
+    <div className="w-full">
       <Dialog>
-        <DialogTrigger asChild>
-          <Button size="sm" className="text-sm"> <PlusIcon /> New Post</Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Post Lost Item</DialogTitle>
-            <DialogDescription>
-              Submit details about a lost item you found.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="grid gap-4">
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <DialogTrigger asChild>
+            <Button size="sm" className="text-sm"> <PlusIcon /> New Post</Button>
+          </DialogTrigger>
+        
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Post Lost Item</DialogTitle>
+              <DialogDescription>
+                Submit details about a lost item you found.
+              </DialogDescription>
+            </DialogHeader>
+            
             <div className="grid gap-2">
               <Label htmlFor="item_name">Item Name</Label>
               <Input
@@ -257,8 +256,8 @@ export function NewPostForm({
                 {isLoading ? "Submitting..." : "Submit"}
               </Button>
             </DialogFooter>
-          </form>
-        </DialogContent>
+          </DialogContent>
+        </form>
       </Dialog>
     </div>
   );

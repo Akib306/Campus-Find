@@ -85,7 +85,7 @@
     --destructive: 4 74% 53%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
+    --input: 0 0% 80%;
     /* Focus ring in USask green */
     --ring: 158 100% 30%;
     /* Charts leaning on brand colors */
@@ -117,7 +117,7 @@
     --destructive: 4 74% 53%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
+    --input: 0 0% 24%;
     /* Brighter ring on dark for accessibility */
     --ring: 158 100% 40%;
     --chart-1: 158 100% 35%;
