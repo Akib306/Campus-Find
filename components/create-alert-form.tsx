@@ -63,9 +63,6 @@ export function CreateAlertForm({ onAlertCreated }: CreateAlertFormProps) {
             setKeyword("");
             setLocation("");
             
-            // Notify parent that alert was created
-            onAlertCreated?.();
-            
             window.location.reload();
         } catch (error: unknown) {
             console.error("Error creating alert:", error);
