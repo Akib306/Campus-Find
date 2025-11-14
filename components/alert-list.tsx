@@ -34,7 +34,7 @@ export function AlertList() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user || !isMounted) return;
-                    
+
                 const { data } = await supabase
                     .from('user_alerts')
                     .select('*')
@@ -65,7 +65,46 @@ export function AlertList() {
           <CardTitle className="text-2xl">Active Alerts</CardTitle>
         </CardHeader>
         <CardContent>
-            
+            { loading ? (
+                <p className="text-muted-foreground">Loading alerts...</p>
+            ) : alerts.length === 0 ? (
+                <p className="text-muted-foreground">No alerts yet. Create your first alert to get started!</p>
+            ) : (
+                <div className="space-y-4">
+                    {alerts.map((alert) => (
+                        <Card key={alert.id}>
+                            <CardContent>
+                                <div className="flex items-start justify-between gap-4">
+                                    {/* Alert Details */}
+                                    <div className="flex-1 space-y-1">
+                                        <h3 className="font-semibold">{alert.category}</h3>
+                                        {alert.keyword && (
+                                            <p className="text-sm text-muted-foreground">
+                                                Keywords: {alert.keyword}
+                                            </p>
+                                        )}
+                                        <p className="text-xs text-muted-foreground">
+                                            Created: {new Date(alert.created_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+
+                                    {/* Action Button */}
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="icon" title="Toggle Alert">
+                                            ⚡
+                                        </Button>
+
+                                        <Button variant="destructive" size="icon" title="Delete Alert">
+                                            🗑️
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )
+        }
                 
           
         </CardContent>
