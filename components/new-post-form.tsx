@@ -34,12 +34,12 @@ export function NewPostForm() {
   const [itemName, setItemName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [lastSeen, setLastSeen] = useState("");
-  const [dateFound, setDateFound] = useState("");
+  const [locationName, setLocationName] = useState("");
   const [imagePreview, setImagePreview] = useState(defaultImageSrc);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,9 +108,8 @@ export function NewPostForm() {
           user_id: user.id,
           item_name: itemName,
           description: description,
-          post_type: "lost",
           item_category: category,
-          location_name: lastSeen,
+          location_name: locationName,
           image_path: imagePaths,
           post_status: "open",
         },
@@ -127,12 +126,13 @@ export function NewPostForm() {
       setItemName("");
       setDescription("");
       setCategory("");
-      setLastSeen("");
-      setDateFound("");
+      setLocationName("");
       setImagePreview(defaultImageSrc);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+      // Close dialog after successful submit
+      setIsDialogOpen(false);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -142,13 +142,15 @@ export function NewPostForm() {
 
   return (
     <div className="w-full">
-      <Dialog>
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <DialogTrigger asChild>
-            <Button size="sm" className="text-sm"> <PlusIcon /> New Post</Button>
-          </DialogTrigger>
-        
-          <DialogContent className="sm:max-w-[600px]">
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
+          <Button type="button" size="sm" className="text-sm">
+            <PlusIcon /> New Post
+          </Button>
+        </DialogTrigger>
+
+        <DialogContent className="sm:max-w-[600px]">
+          <form onSubmit={handleSubmit} className="grid gap-4">
             <DialogHeader>
               <DialogTitle>Post Lost Item</DialogTitle>
               <DialogDescription>
@@ -191,22 +193,12 @@ export function NewPostForm() {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="last_seen">Last Seen</Label>
+              <Label htmlFor="last_seen">Location</Label>
               <Input
-                id="last_seen"
+                id="lastlocation"
                 type="text"
-                value={lastSeen}
-                onChange={(e) => setLastSeen(e.target.value)}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="date">Date Found</Label>
-              <Input
-                id="date"
-                type="date"
-                value={dateFound}
-                onChange={(e) => setDateFound(e.target.value)}
+                value={locationName}
+                onChange={(e) => setLocationName(e.target.value)}
                 required
               />
             </div>
@@ -256,8 +248,8 @@ export function NewPostForm() {
                 {isLoading ? "Submitting..." : "Submit"}
               </Button>
             </DialogFooter>
-          </DialogContent>
-        </form>
+          </form>
+        </DialogContent>
       </Dialog>
     </div>
   );
