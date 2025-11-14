@@ -10,11 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { Trash2 } from "lucide-react";
 
 type AlertItem = {
     id: string;
@@ -54,7 +51,18 @@ export function AlertList() {
         };
     }, [supabase]);
     
-
+    const deleteAlert = async (alertId: string) => {
+        const { error } = await supabase 
+            .from('user_alerts')
+            .delete()
+            .eq('id', alertId);
+        
+        if (error) {
+            console.error("Error deleting alert:", error);
+        } else {
+            setAlerts((prevAlerts) => prevAlerts.filter((alert) => alert.id !== alertId));
+        }
+    }
 
 
 
@@ -90,12 +98,8 @@ export function AlertList() {
 
                                     {/* Action Button */}
                                     <div className="flex gap-2">
-                                        <Button variant="outline" size="icon" title="Toggle Alert">
-                                            ⚡
-                                        </Button>
-
-                                        <Button variant="destructive" size="icon" title="Delete Alert">
-                                            🗑️
+                                        <Button variant="destructive" size="icon" onClick={() => deleteAlert(alert.id)} title="Delete Alert">
+                                            <Trash2 className="h-4 w-4"/>
                                         </Button>
                                     </div>
                                 </div>
