@@ -12,15 +12,28 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
-import { Istok_Web } from "next/font/google";
-import { is } from "date-fns/locale";
+import { useState, useEffect } from "react";
 
-export function CreateAlertForm() {
+type CreateAlertFormProps = {
+    onAlertCreated?: () => void;
+};
+
+export function CreateAlertForm({ onAlertCreated }: CreateAlertFormProps) {
     const [category, setCategory] = useState("");
     const [keyword, setKeyword] = useState("");
     const [location, setLocation] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    // categories for alerts
+    const categories = [
+        "Electronics",
+        "Clothing & Accessories",
+        "Books & Supplies",
+        "Keys & Cards",
+        "Personal Items",
+        "Sports Equipment",
+        "Other"
+    ];
 
     const handleCreation = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,20 +44,32 @@ export function CreateAlertForm() {
             if (!user) 
                 throw new Error("User not authenticated");
 
+            // Split keywords by comma and trim whitespace
+            const keywordsArray = keyword.split(',').map(k => k.trim()).filter(k => k);
+
             const { error } = await supabase.from('user_alerts').insert([{
                 user_id: user.id,
-                category,
-                keyword,
-                location,
+                categories: category,      
+                keywords: keywordsArray,   
             }]);
-            if (error) 
+            
+            if (error) {
+                console.error("Supabase error:", error);
                 throw error;
-
+            }
+            
+            // Reset form
             setCategory("");
             setKeyword("");
             setLocation("");
+            
+            // Notify parent that alert was created
+            onAlertCreated?.();
+            
+            window.location.reload();
         } catch (error: unknown) {
             console.error("Error creating alert:", error);
+            alert("Failed to create alert. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -64,12 +89,18 @@ export function CreateAlertForm() {
                 <div className="flex flex-col gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="category">Category</Label>
-                        <Input
+                        <select
                             id="category"
-                            placeholder="e.g., Electronics, Furniture"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
-                        />
+                            required
+                        >
+                            <option value="">Select a category</option>
+                            {categories.map((cat) => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="keywords">Keywords</Label>
