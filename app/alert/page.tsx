@@ -4,15 +4,17 @@ import { AlertList } from "@/components/alert-list";
 
 export default function AlertsPage() {
   return (
-    <div className="flex-1 w-full flex gap-6">
-      {/* Left side - Compact Create Alert Form */}
-      <div className="w-80 flex-shrink-0">
-        <CreateAlertForm />
-      </div>
-      
-      {/* Right side - Alert List takes remaining space */}
-      <div className="flex-1">
-        <AlertList />
+    <div className="flex-1 w-full flex justify-center items-center min-h-screen">
+      <div className="flex gap-6 max-w-6xl w-full px-4">
+        {/* Left side - Compact Create Alert Form */}
+        <div className="w-80 flex-shrink-0">
+          <CreateAlertForm />
+        </div>
+        
+        {/* Right side - Alert List takes remaining space */}
+        <div className="flex-1">
+          <AlertList />
+        </div>
       </div>
     </div>
   );

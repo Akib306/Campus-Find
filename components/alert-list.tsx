@@ -72,7 +72,7 @@ export function AlertList() {
         <CardHeader>
           <CardTitle className="text-2xl">Active Alerts</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-h-[600px] overflow-y-auto">
             { loading ? (
                 <p className="text-muted-foreground">Loading alerts...</p>
             ) : alerts.length === 0 ? (
