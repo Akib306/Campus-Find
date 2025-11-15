@@ -83,6 +83,9 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => voi
           <CardDescription>
             Set up an alert to get notified when a new post matches your criteria.
           </CardDescription>
+          <p className="text-xs text-muted-foreground mt-2">
+            Note: Adding keywords narrows your alerts to specific items. Multiple alerts for the same category may send duplicate notifications.
+          </p>
         </CardHeader>
         <CardContent>
             <form onSubmit={handleCreation}>
