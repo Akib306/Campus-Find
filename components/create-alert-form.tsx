@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, JSX } from "react";
 
-export function CreateAlertForm(): JSX.Element {
+export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => void }): JSX.Element {
     const [category, setCategory] = useState("");
     const [keyword, setKeyword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -71,7 +71,8 @@ export function CreateAlertForm(): JSX.Element {
             setCategory("");
             setKeyword("");
             
-            window.location.reload();
+            // Trigger refresh of alert list if callback exists
+            onAlertCreated?.();
         } catch (error: unknown) {
             console.error("Error creating alert:", error);
             alert("Failed to create alert. Please try again.");
