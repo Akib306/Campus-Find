@@ -86,7 +86,7 @@ export function AlertList() {
                 <div className="space-y-4">
                     {alerts.map((alert) => (
                         <Card key={alert.id}>
-                            <CardContent className="pt-6">
+                            <CardContent className="pt-4">
                                 <div className="flex items-start justify-between gap-4 p-4">
                                     {/* Alert Details */}
                                     <div className="flex-1 space-y-1">
