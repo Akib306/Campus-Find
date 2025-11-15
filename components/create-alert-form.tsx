@@ -21,13 +21,9 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => voi
 
     // categories for alerts
     const categories = [
-        "Electronics",
-        "Clothing & Accessories",
-        "Books & Supplies",
-        "Keys & Cards",
-        "Personal Items",
-        "Sports Equipment",
-        "Other"
+        "Electronic",
+        "Clothing",
+        "Books",
     ];
 
     const handleCreation = async (e: React.FormEvent) => {
