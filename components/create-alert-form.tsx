@@ -82,7 +82,7 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => voi
       <Card>
         <CardHeader>
           <CardDescription>
-            Set up an alert to get notified when a new listing matches your criteria.
+            Set up an alert to get notified when a new post matches your criteria.
           </CardDescription>
         </CardHeader>
         <CardContent>
