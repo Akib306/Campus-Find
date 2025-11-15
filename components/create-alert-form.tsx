@@ -10,6 +10,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, JSX } from "react";
@@ -18,14 +25,6 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => voi
     const [category, setCategory] = useState("");
     const [keyword, setKeyword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-
-    // categories for alerts
-    const categories = [
-        "Electronic",
-        "Stationery",
-        "Clothing",
-        "Book",
-    ];
 
     const handleCreation = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -91,18 +90,17 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => voi
                 <div className="flex flex-col gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="category">Category</Label>
-                        <select
-                            id="category"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            required
-                        >
-                            <option value="">Select a category</option>
-                            {categories.map((cat) => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
+                        <Select value={category} onValueChange={setCategory} required>
+                            <SelectTrigger id="category" className="w-full bg-background">
+                                <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="electronic">Electronic</SelectItem>
+                                <SelectItem value="stationery">Stationery</SelectItem>
+                                <SelectItem value="book">Book</SelectItem>
+                                <SelectItem value="clothing">Clothing</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="keywords">Keywords</Label>
