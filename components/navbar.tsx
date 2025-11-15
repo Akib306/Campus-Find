@@ -6,6 +6,7 @@ import { EnvVarWarning } from "@/components/env-var-warning";
 import { hasEnvVars } from "@/lib/utils";
 import { NotificationBell } from "./notification-bell";
 import { NewPostForm } from "./new-post-form";
+import { AlertModal } from "./alert-modal";
 
 export async function Navbar() {
   return (
@@ -25,6 +26,7 @@ export async function Navbar() {
           ) : (
             <>
               <NewPostForm />
+              <AlertModal />
               <NotificationBell />
               <AuthButton />
             </>
