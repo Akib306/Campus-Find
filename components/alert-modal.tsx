@@ -18,7 +18,7 @@ export function AlertModal() {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button type="button" size="sm" className="text-sm">See Alerts</Button>
+                <Button type="button" size="sm" className="text-sm">View Alerts</Button>
             </DialogTrigger>
 
             <DialogContent className="sm:max-w-[650px] flex flex-shrink-0">
