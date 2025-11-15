@@ -27,7 +27,7 @@ export function AlertModal() {
                 <Button type="button" size="sm" className="text-sm">View Alerts</Button>
             </DialogTrigger>
                 <DialogContent className="sm:max-w-[650px] flex flex-shrink-0">
-                    <DialogTitle className="sr-only">Alert Management</DialogTitle>"
+                    <DialogTitle className="sr-only">Alert Management</DialogTitle>
                     <div className="w-[220px] flex-shrink-0">
                         <CreateAlertForm onAlertCreated={handleAlertCreated} />
                     </div>
