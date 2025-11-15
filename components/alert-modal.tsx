@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 
@@ -25,15 +26,15 @@ export function AlertModal() {
             <DialogTrigger asChild>
                 <Button type="button" size="sm" className="text-sm">View Alerts</Button>
             </DialogTrigger>
-
-            <DialogContent className="sm:max-w-[650px] flex flex-shrink-0">
-                <div className="w-[220px] flex-shrink-0">
-                    <CreateAlertForm onAlertCreated={handleAlertCreated} />
-                </div>
-                <div className="flex-1 min-w-0 pr-4">
-                    <AlertList key={refreshKey} /> 
-                </div>
-            </DialogContent>
+                <DialogContent className="sm:max-w-[650px] flex flex-shrink-0">
+                    <DialogTitle className="sr-only">Alert Management</DialogTitle>"
+                    <div className="w-[220px] flex-shrink-0">
+                        <CreateAlertForm onAlertCreated={handleAlertCreated} />
+                    </div>
+                    <div className="flex-1 min-w-0 pr-4">
+                        <AlertList key={refreshKey} /> 
+                    </div>
+                </DialogContent>
         </Dialog>
     )
 }
