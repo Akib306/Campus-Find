@@ -21,7 +21,7 @@ BEGIN
 
         -- Check if any keyword matches
         if alert_record.keywords is not null THEN
-            foreach keyword in array alert.record.keywords
+            foreach keyword in array alert_record.keywords
             Loop
                 if NEW.item_name ILIKE '%' || keyword || '%' THEN  -- Case-insensitive pattern matching
                     matches := true;
