@@ -84,7 +84,6 @@ export function CreateAlertForm(): JSX.Element {
     <div className={cn("flex flex-row gap-6")}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Create Alert</CardTitle>
           <CardDescription>
             Set up an alert to get notified when a new listing matches your criteria.
           </CardDescription>
