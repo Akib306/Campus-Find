@@ -84,14 +84,15 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => voi
             Set up an alert to get notified when a new post matches your criteria.
           </CardDescription>
           <p className="text-xs text-muted-foreground mt-2">
-            Note: Adding keywords narrows your alerts to specific items. Multiple alerts for the same category may send duplicate notifications.
+            Note: (*) Required field.
+            Leave keywords empty to receive all posts in the selected category.
           </p>
         </CardHeader>
         <CardContent>
             <form onSubmit={handleCreation}>
                 <div className="flex flex-col gap-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="category">Category</Label>
+                        <Label htmlFor="category">Category *</Label>
                         <Select value={category} onValueChange={setCategory} required>
                             <SelectTrigger id="category" className="w-full bg-background">
                                 <SelectValue placeholder="Select a category" />
