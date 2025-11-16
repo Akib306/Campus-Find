@@ -72,7 +72,7 @@ export function NotificationBell() {
             // Show the latency for how long a notification is taking to be received
             const receivedAt = new Date();  // Time when notification is received
             const createdAt = new Date((payload.new as NotificationItem).created_at);  // Creation time from payload (new data from DB treated as NotificationItem)
-            const latency = receivedAt.getTime() - createdAt.getTime();  // in milliseconds
+            const latency = Math.abs(receivedAt.getTime() - createdAt.getTime());  // in milliseconds (absolute value handles clock skew)
             console.log('Notification received.', latency, 'ms');
             console.log(latency < 5000 ? 'Under 5 seconds' :  'Over 5 seconds');
             
