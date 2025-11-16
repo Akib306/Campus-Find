@@ -61,17 +61,43 @@ export function SignUpForm({
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Prevent redirecting to success when the email is already registered.
+      // We can safely query profiles (RLS allows public read) because it mirrors auth.users.
+      const { data: existingProfiles, error: existingLookupError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .limit(1);
+
+      if (!existingLookupError && existingProfiles && existingProfiles.length > 0) {
+        setError("An account with this email already exists. Please log in.");
+        setIsLoading(false);
+        return;
+      }
+
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/protected`,
         },
       });
-      if (error) throw error;
+      if (signUpError) throw signUpError;
       router.push(`/auth/sign-up-success?email=${encodeURIComponent(email)}`);
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+    } catch (err: unknown) {
+      // Provide a clearer message when the email is already registered
+      if (err && typeof err === "object" && "message" in err) {
+        const message = String((err as { message?: string }).message || "");
+        if (/already\s+(registered|exists)/i.test(message)) {
+          setError(
+            "An account with this email already exists. Please log in."
+          );
+        } else {
+          setError(message || "An error occurred");
+        }
+      } else {
+        setError("An error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
