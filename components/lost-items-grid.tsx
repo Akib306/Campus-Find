@@ -46,7 +46,7 @@ export function LostItemsGrid() {
       }
 
       setPosts(data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Type as any for debugging
       console.error("Full Error Object:", JSON.stringify(err, null, 2));
 
@@ -70,7 +70,7 @@ export function LostItemsGrid() {
           event: "*",
           schema: "public",
           table: "posts",
-          filter: "post_type=eq.lost",
+          filter: "post_status=eq.open",
         },
         () => {
           // Refetch on any change
