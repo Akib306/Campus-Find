@@ -1,5 +1,5 @@
 -- Create conversations table referencing profiles and posts
-CREATE TABLE conversations (
+CREATE TABLE if not exists conversations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   post_id UUID REFERENCES posts(id),
   user1_id UUID REFERENCES profiles(id),
@@ -12,7 +12,7 @@ CREATE TABLE conversations (
 );
 
 -- Create messages table
-CREATE TABLE messages (
+CREATE TABLE if not exists messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
   message_type TEXT NOT NULL CHECK (message_type IN ('claim_initial', 'suggestion', 'confirmation', 'status_update', 'share_contact')),
@@ -24,7 +24,7 @@ CREATE TABLE messages (
 );
 
 -- Create pickup_options table
-CREATE TABLE pickup_options (
+CREATE TABLE if not exists pickup_options (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   option_type TEXT NOT NULL CHECK (option_type IN ('location', 'time_slot', 'delay_time')),
   value TEXT NOT NULL,
@@ -39,32 +39,67 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pickup_options ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
-CREATE POLICY "Users can view conversations they are part of" ON conversations
-  FOR SELECT USING (auth.uid() = user1_id OR auth.uid() = user2_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can view conversations they are part of" ON conversations
+    FOR SELECT USING (auth.uid() = user1_id OR auth.uid() = user2_id);
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END;
+$$;
 
-CREATE POLICY "Users can insert conversations" ON conversations
-  FOR INSERT WITH CHECK (auth.uid() = user1_id OR auth.uid() = user2_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can insert conversations" ON conversations
+    FOR INSERT WITH CHECK (auth.uid() = user1_id OR auth.uid() = user2_id);
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END;
+$$;
 
-CREATE POLICY "Users can view messages in their conversations" ON messages
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM conversations 
-      WHERE conversations.id = messages.conversation_id 
-      AND (conversations.user1_id = auth.uid() OR conversations.user2_id = auth.uid())
-    )
-  );
+DO $$
+BEGIN
+  CREATE POLICY "Users can view messages in their conversations" ON messages
+    FOR SELECT USING (
+      EXISTS (
+        SELECT 1 FROM conversations 
+        WHERE conversations.id = messages.conversation_id 
+        AND (conversations.user1_id = auth.uid() OR conversations.user2_id = auth.uid())
+      )
+    );
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END;
+$$;
 
-CREATE POLICY "Users can insert messages in their conversations" ON messages
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM conversations 
-      WHERE conversations.id = messages.conversation_id 
-      AND (conversations.user1_id = auth.uid() OR conversations.user2_id = auth.uid())
-    )
-  );
+DO $$
+BEGIN
+  CREATE POLICY "Users can insert messages in their conversations" ON messages
+    FOR INSERT WITH CHECK (
+      EXISTS (
+        SELECT 1 FROM conversations 
+        WHERE conversations.id = messages.conversation_id 
+        AND (conversations.user1_id = auth.uid() OR conversations.user2_id = auth.uid())
+      )
+    );
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END;
+$$;
 
-CREATE POLICY "Anyone can view pickup options" ON pickup_options
-  FOR SELECT USING (true);
+DO $$
+BEGIN
+  CREATE POLICY "Anyone can view pickup options" ON pickup_options
+    FOR SELECT USING (true);
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END;
+$$;
 
 -- Insert USask pickup locations
 INSERT INTO pickup_options (option_type, value, display_text, sort_order) VALUES
@@ -100,3 +135,4 @@ INSERT INTO pickup_options (option_type, value, display_text, sort_order) VALUES
 ('time_slot', '19:30-20:00', '7:30 PM - 8:00 PM', 22),
 ('time_slot', '20:00-20:30', '8:00 PM - 8:30 PM', 23),
 ('time_slot', '20:30-21:00', '8:30 PM - 9:00 PM', 24);
+

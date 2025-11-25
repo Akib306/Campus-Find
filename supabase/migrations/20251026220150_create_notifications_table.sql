@@ -13,7 +13,15 @@ create table if not exists public.notifications (
 alter table notifications replica identity full;
 
 -- Enables realtime on notifications table
-alter publication supabase_realtime add table public.notifications;
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+EXCEPTION
+    WHEN duplicate_object THEN
+        -- Table is already part of the publication; ignore the error
+        NULL;
+END;
+$$;
 
 -- RLS
 alter table notifications enable row level security;
