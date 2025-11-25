@@ -118,7 +118,6 @@ export function NewPostForm() {
             user_id: user.id,
             item_name: itemName,
             description: description,
-            post_type: "lost",
             item_category: category,
             location_name: locationName,
             image_path: [],

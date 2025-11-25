@@ -38,7 +38,6 @@ export function LostItemsGrid() {
       const { data, error: fetchError } = await supabase
         .from("posts")
         .select("*")
-        .eq("post_type", "lost")
         .eq("post_status", "open")
         .order("created_at", { ascending: false });
 
@@ -49,7 +48,6 @@ export function LostItemsGrid() {
       setPosts(data || []);
     } catch (err: any) {
       // Type as any for debugging
-      // IMPROVED DEBUGGING
       console.error("Full Error Object:", JSON.stringify(err, null, 2));
 
       setError(
