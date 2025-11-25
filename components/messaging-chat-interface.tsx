@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Message, Conversation, PickupOption } from '@/lib/messaging-service';
 import { MessagingLocationPicker } from './messaging-location-picker';
 import { MessagingTimePicker } from './messaging-time-picker';
@@ -14,10 +15,20 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
   const [loading, setLoading] = useState(true);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showPickupConfirm, setShowPickupConfirm] = useState(false);
+  const [pickupCode, setPickupCode] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<PickupOption | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const loadMessages = useCallback(async () => {
+  useEffect(() => {
+    loadMessages();
+  }, [conversation.id]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const loadMessages = async () => {
     try {
       const conversationMessages = await MessagingService.getConversationMessages(conversation.id);
       setMessages(conversationMessages);
@@ -26,17 +37,7 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
     } finally {
       setLoading(false);
     }
-  }, [conversation.id]);
-
-  useEffect(() => {
-    loadMessages();
-  }, [loadMessages]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -56,15 +57,12 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
     setShowTimePicker(false);
     
     try {
-      // Send location and time suggestion
       const suggestionText = `${selectedLocation?.display_text}, ${timeSlot.display_text}`;
       await MessagingService.sendMenuMessage(
         conversation.id,
         'suggestion',
         suggestionText
       );
-      
-      // Reload messages to show the new one
       await loadMessages();
       setSelectedLocation(null);
     } catch (error) {
@@ -100,6 +98,23 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
     }
   };
 
+  const handleConfirmPickup = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error('Not authenticated');
+
+      await MessagingService.confirmPickup(conversation.id, pickupCode, user.id);
+      setShowPickupConfirm(false);
+      setPickupCode('');
+      await loadMessages();
+    } catch (error) {
+      console.error('Error confirming pickup:', error);
+      alert('Invalid pickup code. Please check and try again.');
+    }
+  };
+
   const getActionButtons = (lastMessage: Message) => {
     if (lastMessage.message_type === 'suggestion') {
       return (
@@ -115,6 +130,29 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
             className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
           >
             Suggest Alternative
+          </button>
+        </div>
+      );
+    }
+
+    // Show pickup confirmation button if meeting is arranged but not completed
+    const hasConfirmedMeeting = messages.some(m => m.message_type === 'confirmation');
+    const isPickupCompleted = conversation.item_picked_up;
+
+    if (hasConfirmedMeeting && !isPickupCompleted) {
+      return (
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => setShowPickupConfirm(true)}
+            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+          >
+            Confirm Pickup
+          </button>
+          <button
+            onClick={handleShareContact}
+            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+          >
+            Share Contact
           </button>
         </div>
       );
@@ -203,6 +241,38 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
         onClose={() => setShowTimePicker(false)}
         onTimeSelect={handleTimeSelect}
       />
+
+      {/* Pickup Confirmation Modal */}
+      {showPickupConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-80 max-w-sm text-gray-900">
+            <h3 className="text-lg font-semibold mb-4">Confirm Item Pickup</h3>
+            <p className="mb-4 text-sm">Enter the 6-digit pickup code to confirm return:</p>
+            <input
+              type="text"
+              value={pickupCode}
+              onChange={(e) => setPickupCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="123456"
+              className="w-full p-2 border border-gray-300 rounded mb-4 text-center text-lg"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleConfirmPickup}
+                className="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                disabled={pickupCode.length !== 6}
+              >
+                Confirm
+              </button>
+              <button
+                onClick={() => setShowPickupConfirm(false)}
+                className="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
