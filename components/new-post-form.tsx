@@ -118,6 +118,7 @@ export function NewPostForm() {
             user_id: user.id,
             item_name: itemName,
             description: description,
+            post_type: "lost",
             item_category: category,
             location_name: locationName,
             image_path: [],
@@ -137,9 +138,12 @@ export function NewPostForm() {
       const uploadedPaths: string[] = [];
       if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
-          const extension =
-            file.name.includes(".") ? file.name.split(".").pop() : undefined;
-          const uniqueName = `${crypto.randomUUID()}${extension ? `.${extension}` : ""}`;
+          const extension = file.name.includes(".")
+            ? file.name.split(".").pop()
+            : undefined;
+          const uniqueName = `${crypto.randomUUID()}${
+            extension ? `.${extension}` : ""
+          }`;
           const storagePath = `public/${postId}/${uniqueName}`;
 
           const { error: uploadError } = await supabase.storage
@@ -234,7 +238,7 @@ export function NewPostForm() {
                 Submit details about a lost item you found.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="item_name">Item Name</Label>
               <Input
