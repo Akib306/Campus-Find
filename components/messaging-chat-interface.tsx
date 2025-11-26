@@ -8,9 +8,10 @@ import { MessagingTimePicker } from './messaging-time-picker';
 
 interface MessagingChatInterfaceProps {
   conversation: Conversation;
+  currentUser: any;
 }
 
-export function MessagingChatInterface({ conversation }: MessagingChatInterfaceProps) {
+export function MessagingChatInterface({ conversation, currentUser }: MessagingChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
@@ -20,10 +21,15 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
   const [selectedLocation, setSelectedLocation] = useState<PickupOption | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Get the other user's profile
+  const otherUser = conversation.user1_id === currentUser.id 
+    ? conversation.user2_profile 
+    : conversation.user1_profile;
+
   useEffect(() => {
     loadMessages();
     
-    // Set up real-time subscription for new messages
+    // Real-time subscription
     const supabase = createClient();
     
     const channel = supabase
@@ -37,14 +43,12 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
           filter: `conversation_id=eq.${conversation.id}`
         },
         (payload) => {
-          // When new message is inserted, add it to the list
           const newMessage = payload.new as Message;
           setMessages(prev => [...prev, newMessage]);
         }
       )
       .subscribe();
 
-    // Cleanup subscription when component unmounts
     return () => {
       supabase.removeChannel(channel);
     };
@@ -89,7 +93,6 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
         'suggestion',
         suggestionText
       );
-      // No need to reload messages - real-time will handle it
       setSelectedLocation(null);
     } catch (error) {
       console.error('Error sending suggestion:', error);
@@ -100,15 +103,14 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
     try {
       const message = messages.find(m => m.id === messageId);
       if (message && message.content) {
-        await MessagingService.sendMenuMessage(
+        await MessagingService.confirmMeeting(
           conversation.id,
-          'confirmation',
-          message.content
+          message.content,
+          currentUser.id
         );
-        // No need to reload messages - real-time will handle it
       }
     } catch (error) {
-      console.error('Error confirming:', error);
+      console.error('Error confirming meeting:', error);
     }
   };
 
@@ -118,7 +120,6 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
         conversation.id,
         'share_contact'
       );
-      // No need to reload messages - real-time will handle it
     } catch (error) {
       console.error('Error sharing contact:', error);
     }
@@ -126,15 +127,9 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
 
   const handleConfirmPickup = async () => {
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) throw new Error('Not authenticated');
-
-      await MessagingService.confirmPickup(conversation.id, pickupCode, user.id);
+      await MessagingService.confirmPickup(conversation.id, pickupCode, currentUser.id);
       setShowPickupConfirm(false);
       setPickupCode('');
-      // No need to reload messages - real-time will handle it
     } catch (error) {
       console.error('Error confirming pickup:', error);
       alert('Invalid pickup code. Please check and try again.');
@@ -208,6 +203,13 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
 
   return (
     <div className="flex flex-col h-96 border border-gray-200 rounded-lg">
+      {/* Chat Header */}
+      <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <h3 className="font-semibold text-gray-900">
+          {otherUser?.username || 'User'}
+        </h3>
+      </div>
+
       {/* Messages Area */}
       <div className="flex-1 p-4 overflow-y-auto">
         {messages.length === 0 ? (
@@ -217,10 +219,12 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`p-3 rounded-lg max-w-xs text-gray-900 ${
-                  message.sender_id === conversation.user1_id 
-                    ? 'bg-blue-100 ml-auto' 
-                    : 'bg-gray-100'
+                className={`p-3 rounded-lg max-w-xs ${
+                  message.sender_id === currentUser.id 
+                    ? 'bg-blue-100 ml-auto text-gray-900' 
+                    : message.message_type === 'system'
+                    ? 'bg-yellow-100 text-gray-900 border border-yellow-200'
+                    : 'bg-gray-100 text-gray-900'
                 }`}
               >
                 <div className="text-sm">{message.display_text}</div>
@@ -272,8 +276,8 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
       {showPickupConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-80 max-w-sm text-gray-900">
-            <h3 className="text-lg font-semibold mb-4">Confirm Item Pickup</h3>
-            <p className="mb-4 text-sm">Enter the 6-digit pickup code to confirm return:</p>
+            <h3 className="text-lg font-semibold mb-4">Confirm Item Return</h3>
+            <p className="mb-4 text-sm">Enter the 6-digit pickup code from {otherUser?.username || 'the owner'}:</p>
             <input
               type="text"
               value={pickupCode}
@@ -287,7 +291,7 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
                 className="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
                 disabled={pickupCode.length !== 6}
               >
-                Confirm
+                Confirm Return
               </button>
               <button
                 onClick={() => setShowPickupConfirm(false)}
