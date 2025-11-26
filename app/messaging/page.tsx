@@ -1,33 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Conversation } from '@/lib/messaging-service';
 import { MessagingConversationList } from '@/components/messaging-conversation-list';
 import { MessagingChatInterface } from '@/components/messaging-chat-interface';
 
-// TEMPORARY DEMO: This messaging page is for testing only
-// For integration: 
-// - Replace TEMPORARY_TEST_POST_ID with actual post_id from posts table
-// - Use different user IDs for user1_id (post owner) and user2_id (claimant)
-
 export default function MessagingPage() {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUser();
+    loadUserAndConversations();
   }, []);
 
-  const loadUser = async () => {
+  const loadUserAndConversations = async () => {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
         setUser(user);
+        const userConversations = await MessagingService.getUserConversations(user.id);
+        setConversations(userConversations);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -40,16 +37,41 @@ export default function MessagingPage() {
     if (!user) return;
 
     try {
-      // TEMPORARY: For demo only - replace with real post_id when integrating
-      // This creates a conversation with the same user as both parties
+      // Simple test without post updates
       const TEMPORARY_TEST_POST_ID = '00000000-0000-0000-0000-000000000000';
       
-      const { conversation } = await MessagingService.claimItem(
-        TEMPORARY_TEST_POST_ID,
-        user.id,  // user1_id (post owner)
-        user.id   // user2_id (claimant) - same user for demo
-      );
-      
+      const supabase = createClient();
+      const { data: conversation, error: convError } = await supabase
+        .from('conversations')
+        .insert({
+          post_id: TEMPORARY_TEST_POST_ID,
+          user1_id: user.id,
+          user2_id: user.id,
+          status: 'active'
+        })
+        .select(`
+          *,
+          user1_profile:user1_id(username, email),
+          user2_profile:user2_id(username, email)
+        `)
+        .single();
+
+      if (convError) throw convError;
+
+      const { data: message, error: msgError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversation.id,
+          message_type: 'claim_initial',
+          display_text: 'Hello, I believe this is my lost item',
+          sender_id: user.id
+        })
+        .select()
+        .single();
+
+      if (msgError) throw msgError;
+
+      setConversations(prev => [conversation, ...prev]);
       setSelectedConversation(conversation);
     } catch (error) {
       console.error('Error creating test conversation:', error);
@@ -74,9 +96,9 @@ export default function MessagingPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-6xl text-gray-900">
-      <h1 className="text-3xl font-bold mb-2">Messaging Feature</h1>
+      <h1 className="text-3xl font-bold mb-2">Messages</h1>
       <p className="text-gray-600 mb-6">
-        Menu-based messaging system for CampusFind
+        Coordinate item returns with other users
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -104,7 +126,7 @@ export default function MessagingPage() {
           </h2>
           
           {selectedConversation ? (
-            <MessagingChatInterface conversation={selectedConversation} />
+            <MessagingChatInterface conversation={selectedConversation} currentUser={user} />
           ) : (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <div className="text-gray-500">
@@ -113,18 +135,6 @@ export default function MessagingPage() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Instructions */}
-      <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-        <h3 className="font-semibold mb-2">How to use:</h3>
-        <ol className="list-decimal list-inside space-y-1 text-sm">
-          <li>Click &quot;Test Conversation&quot; to create a new conversation</li>
-          <li>Click &quot;Arrange Pickup&quot; to open the menu-based messaging</li>
-          <li>Select a location and time slot</li>
-          <li>Use the &quot;Confirm&quot; or &quot;Suggest Alternative&quot; buttons</li>
-          <li>Try the &quot;Share Contact&quot; feature</li>
-        </ol>
       </div>
     </div>
   );
