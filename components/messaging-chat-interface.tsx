@@ -22,6 +22,32 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
 
   useEffect(() => {
     loadMessages();
+    
+    // Set up real-time subscription for new messages
+    const supabase = createClient();
+    
+    const channel = supabase
+      .channel(`conversation:${conversation.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversation.id}`
+        },
+        (payload) => {
+          // When new message is inserted, add it to the list
+          const newMessage = payload.new as Message;
+          setMessages(prev => [...prev, newMessage]);
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription when component unmounts
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [conversation.id]);
 
   useEffect(() => {
@@ -63,7 +89,7 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
         'suggestion',
         suggestionText
       );
-      await loadMessages();
+      // No need to reload messages - real-time will handle it
       setSelectedLocation(null);
     } catch (error) {
       console.error('Error sending suggestion:', error);
@@ -79,7 +105,7 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
           'confirmation',
           message.content
         );
-        await loadMessages();
+        // No need to reload messages - real-time will handle it
       }
     } catch (error) {
       console.error('Error confirming:', error);
@@ -92,7 +118,7 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
         conversation.id,
         'share_contact'
       );
-      await loadMessages();
+      // No need to reload messages - real-time will handle it
     } catch (error) {
       console.error('Error sharing contact:', error);
     }
@@ -108,7 +134,7 @@ export function MessagingChatInterface({ conversation }: MessagingChatInterfaceP
       await MessagingService.confirmPickup(conversation.id, pickupCode, user.id);
       setShowPickupConfirm(false);
       setPickupCode('');
-      await loadMessages();
+      // No need to reload messages - real-time will handle it
     } catch (error) {
       console.error('Error confirming pickup:', error);
       alert('Invalid pickup code. Please check and try again.');
