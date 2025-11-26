@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Navbar } from "@/components/navbar";
 import { LostItemsGrid } from "@/components/lost-items-grid";
 import { CategorySidebar } from "@/components/category-sidebar";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -68,7 +67,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex flex-col">
-      <Navbar />
       <div className="flex-1 w-full flex flex-col items-center">
         <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
