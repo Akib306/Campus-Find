@@ -13,6 +13,8 @@ export interface Conversation {
   picked_up_at?: string;
   created_at: string;
   updated_at: string;
+  user1_profile?: any;
+  user2_profile?: any;
 }
 
 export interface Message {
@@ -24,6 +26,7 @@ export interface Message {
   sender_id: string;
   is_read: boolean;
   created_at: string;
+  sender_profile?: any;
 }
 
 export interface PickupOption {
@@ -34,18 +37,14 @@ export interface PickupOption {
 }
 
 export class MessagingService {
-  // Claim an item and start conversation with pickup code
+  // Claim an item and start conversation
   static async claimItem(postId: string, claimantId: string, itemOwnerId: string) {
     const supabase = createClient();
 
-    // Generate a random 6-digit claim code
-    const claimCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Update the post with claim information
+    // Update the post status
     const { error: postError } = await supabase
       .from('posts')
       .update({
-        claim_code: claimCode,
         claimed_by_user_id: claimantId,
         claimed_at: new Date().toISOString(),
         post_status: 'pending_claim'
@@ -59,23 +58,33 @@ export class MessagingService {
       .from('conversations')
       .insert({
         post_id: postId,
-        user1_id: itemOwnerId, // Item owner (who posted)
-        user2_id: claimantId,  // Claimant (who clicked "THIS IS MINE!")
-        status: 'active',
-        claim_code: claimCode
+        user1_id: itemOwnerId,
+        user2_id: claimantId,
+        status: 'active'
       })
-      .select()
+      .select(`
+        *,
+        user1_profile:user1_id(username, email),
+        user2_profile:user2_id(username, email)
+      `)
       .single();
 
     if (convError) throw convError;
 
-    // Send initial claim message with pickup code
+    // Get claimant profile for personalized message
+    const { data: claimantProfile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', claimantId)
+      .single();
+
+    // Send initial claim message
     const { data: message, error: msgError } = await supabase
       .from('messages')
       .insert({
         conversation_id: conversation.id,
         message_type: 'claim_initial',
-        display_text: `Hello, I believe this is my lost item. Pickup code: ${claimCode}`,
+        display_text: 'Hello, I believe this is my lost item',
         sender_id: claimantId
       })
       .select()
@@ -83,15 +92,19 @@ export class MessagingService {
 
     if (msgError) throw msgError;
 
-    return { conversation, message, claimCode };
+    return { conversation, message };
   }
 
-  // Get conversations for current user
+  // Get conversations for current user with profiles
   static async getUserConversations(userId: string) {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('conversations')
-      .select('*')
+      .select(`
+        *,
+        user1_profile:user1_id(username, email),
+        user2_profile:user2_id(username, email)
+      `)
       .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
       .order('updated_at', { ascending: false });
 
@@ -99,12 +112,15 @@ export class MessagingService {
     return data;
   }
 
-  // Get messages for a conversation
+  // Get messages for a conversation with sender profiles
   static async getConversationMessages(conversationId: string) {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('messages')
-      .select('*')
+      .select(`
+        *,
+        sender_profile:sender_id(username, email)
+      `)
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
@@ -143,7 +159,10 @@ export class MessagingService {
         display_text: finalDisplayText,
         sender_id: user.id
       })
-      .select()
+      .select(`
+        *,
+        sender_profile:sender_id(username, email)
+      `)
       .single();
 
     if (error) throw error;
@@ -155,6 +174,106 @@ export class MessagingService {
       .eq('id', conversationId);
 
     return message;
+  }
+
+  // Confirm meeting and generate pickup code with personalized messages
+  static async confirmMeeting(conversationId: string, meetingDetails: string, userId: string) {
+    const supabase = createClient();
+
+    // Get conversation with user profiles
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select(`
+        *,
+        user1_profile:user1_id(username, email),
+        user2_profile:user2_id(username, email)
+      `)
+      .eq('id', conversationId)
+      .single();
+
+    if (convError) throw convError;
+
+    // Generate pickup code
+    const claimCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Update conversation with code
+    const { error: updateError } = await supabase
+      .from('conversations')
+      .update({
+        arranged_location: this.extractLocation(meetingDetails),
+        arranged_time: this.extractTime(meetingDetails),
+        claim_code: claimCode,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversationId);
+
+    if (updateError) throw updateError;
+
+    // Update the post with pickup code
+    const { error: postError } = await supabase
+      .from('posts')
+      .update({
+        claim_code: claimCode
+      })
+      .eq('id', conversation.post_id);
+
+    if (postError) throw postError;
+
+    // Determine user roles
+    const currentUserIsUser1 = userId === conversation.user1_id;
+    const otherUserProfile = currentUserIsUser1 ? conversation.user2_profile : conversation.user1_profile;
+    const currentUserProfile = currentUserIsUser1 ? conversation.user1_profile : conversation.user2_profile;
+
+    // Send confirmation message to both users
+    const confirmationText = `Confirmed! ${meetingDetails}`;
+    await this.sendMenuMessage(
+      conversationId,
+      'confirmation',
+      meetingDetails,
+      confirmationText,
+      userId
+    );
+
+    // Send personalized code messages
+    if (currentUserIsUser1) {
+      // User1 (Finder) confirmed - User2 (Owner) gets code
+      await this.sendMenuMessage(
+        conversationId,
+        'system',
+        `Your pickup code: ${claimCode}\n*Give this code to ${conversation.user1_profile?.username || 'the finder'} when you meet*`,
+        `Your pickup code: ${claimCode}\n*Give this code to ${conversation.user1_profile?.username || 'the finder'} when you meet*`,
+        userId
+      );
+      
+      // User1 (Finder) gets instructions
+      await this.sendMenuMessage(
+        conversationId,
+        'system', 
+        `*Ask ${conversation.user2_profile?.username || 'the owner'} for the pickup code to verify return*`,
+        `*Ask ${conversation.user2_profile?.username || 'the owner'} for the pickup code to verify return*`,
+        userId
+      );
+    } else {
+      // User2 (Owner) confirmed - User2 gets code
+      await this.sendMenuMessage(
+        conversationId,
+        'system',
+        `Your pickup code: ${claimCode}\n*Give this code to ${conversation.user1_profile?.username || 'the finder'} when you meet*`,
+        `Your pickup code: ${claimCode}\n*Give this code to ${conversation.user1_profile?.username || 'the finder'} when you meet*`,
+        userId
+      );
+      
+      // User1 (Finder) gets instructions  
+      await this.sendMenuMessage(
+        conversationId,
+        'system',
+        `*Ask ${conversation.user2_profile?.username || 'the owner'} for the pickup code to verify return*`,
+        `*Ask ${conversation.user2_profile?.username || 'the owner'} for the pickup code to verify return*`,
+        userId
+      );
+    }
+
+    return { conversation, claimCode };
   }
 
   // Confirm item pickup with verification code
@@ -186,12 +305,12 @@ export class MessagingService {
 
     if (postError) throw postError;
 
-    // Send confirmation message
+    // Send verification completed message
     await this.sendMenuMessage(
       conversationId,
-      'status_update',
-      `Item successfully picked up and returned! ✅`,
-      `✅ Item pickup confirmed! Return completed at ${new Date().toLocaleTimeString()}`,
+      'system',
+      `Verification completed! Item successfully returned.\nReturn confirmed at ${new Date().toLocaleTimeString()}`,
+      `Verification completed! Item successfully returned.\nReturn confirmed at ${new Date().toLocaleTimeString()}`,
       userId
     );
 
@@ -212,14 +331,27 @@ export class MessagingService {
     return data;
   }
 
+  // Helper function to extract location from meeting details
+  private static extractLocation(meetingDetails: string): string {
+    const parts = meetingDetails.split(',');
+    return parts[0]?.trim() || '';
+  }
+
+  // Helper function to extract time from meeting details  
+  private static extractTime(meetingDetails: string): string {
+    const parts = meetingDetails.split(',');
+    return parts.slice(1).join(',').trim() || '';
+  }
+
   // Generate display text based on message type
   private static generateDisplayText(messageType: string, content?: string): string {
     const templates: Record<string, string> = {
       'claim_initial': 'Hello, I believe this is my lost item',
       'suggestion': `Suggested: ${content}`,
-      'confirmation': `✅ Confirmed! ${content}`,
+      'confirmation': `Confirmed! ${content}`,
       'status_update': `Status: ${content}`,
-      'share_contact': 'Shared contact information'
+      'share_contact': 'Shared contact information',
+      'system': content || 'System message'
     };
 
     return templates[messageType] || content || 'Message';
