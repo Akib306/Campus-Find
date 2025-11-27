@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Conversation } from '@/lib/messaging-service';
 import { MessagingConversationList } from '@/components/messaging-conversation-list';
@@ -11,6 +12,7 @@ export default function MessagingPage() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     loadUserAndConversations();
@@ -18,18 +20,22 @@ export default function MessagingPage() {
 
   const loadUserAndConversations = async () => {
     try {
-      console.log('🔄 Loading user and conversations...');
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        console.log('👤 User found:', user.id);
         setUser(user);
         const userConversations = await MessagingService.getUserConversations(user.id);
-        console.log('📨 Conversations loaded:', userConversations);
         setConversations(userConversations);
-      } else {
-        console.log('❌ No user found');
+
+        // Auto-select conversation from URL parameter
+        const conversationId = searchParams.get('conversation');
+        if (conversationId) {
+          const conversationToSelect = userConversations.find(conv => conv.id === conversationId);
+          if (conversationToSelect) {
+            setSelectedConversation(conversationToSelect);
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -88,9 +94,7 @@ export default function MessagingPage() {
                 Select a conversation from the list to start messaging.
                 <br />
                 <span className="text-sm">
-                  {conversations.length > 0 
-                    ? `Found ${conversations.length} conversations` 
-                    : 'No conversations found'}
+                  Claim an item on the listings page to start a new conversation.
                 </span>
               </div>
             </div>
