@@ -85,7 +85,7 @@ export class MessagingService {
     }
   }
 
-  // Get conversations for current user (simplified)
+  // Get conversations for current user
   static async getUserConversations(userId: string) {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -98,7 +98,7 @@ export class MessagingService {
     return data;
   }
 
-  // Get messages for a conversation (simplified)
+  // Get messages for a conversation
   static async getConversationMessages(conversationId: string) {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -160,6 +160,15 @@ export class MessagingService {
   static async confirmMeeting(conversationId: string, meetingDetails: string, userId: string) {
     const supabase = createClient();
 
+    // Get conversation to find post_id
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('post_id')
+      .eq('id', conversationId)
+      .single();
+
+    if (convError) throw convError;
+
     // Generate pickup code
     const claimCode = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -182,7 +191,7 @@ export class MessagingService {
       .update({
         claim_code: claimCode
       })
-      .eq('id', conversationId); // Note: This needs the actual post_id
+      .eq('id', conversation.post_id);
 
     if (postError) console.log('Post code update warning:', postError.message);
 
@@ -196,7 +205,7 @@ export class MessagingService {
       userId
     );
 
-    // Send code message (simplified without names)
+    // Send code message
     await this.sendMenuMessage(
       conversationId,
       'system',
