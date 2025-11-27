@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { MessagingService } from '@/lib/messaging-service';
+import { useState, useEffect } from 'react';
 
 interface ClaimItemButtonProps {
   postId: string;
@@ -12,56 +13,103 @@ interface ClaimItemButtonProps {
 
 export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimItemButtonProps) {
   const router = useRouter();
+  const [isAlreadyClaimed, setIsAlreadyClaimed] = useState(false);
+
+  useEffect(() => {
+    console.log('📋 ClaimItemButton props:', { postId, postOwnerId });
+    checkIfClaimed();
+  }, [postId, postOwnerId]);
+
+  const checkIfClaimed = async () => {
+    const supabase = createClient();
+    const { data: post } = await supabase
+      .from('posts')
+      .select('claimed_by_user_id, user_id')
+      .eq('id', postId)
+      .single();
+    
+    console.log('📝 Post data:', post);
+    
+    if (post?.claimed_by_user_id) {
+      setIsAlreadyClaimed(true);
+    }
+  };
 
   const handleClaimItem = async () => {
     try {
-      console.log('🔧 1. Claim button clicked');
+      console.log('🔧 Claim button clicked');
+      console.log('📦 Props received:', { postId, postOwnerId });
       
-      const supabase = createClient();
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error('❌ Auth error:', JSON.stringify(userError, null, 2));
+      if (isAlreadyClaimed) {
+        alert('This item has already been claimed by someone else.');
         return;
       }
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         alert('Please log in to claim an item');
         return;
       }
 
-      console.log('👤 2. User authenticated:', user.id);
-      console.log('📝 3. Post ID:', postId);
-      console.log('👑 4. Post Owner:', postOwnerId);
+      console.log('👤 Current user:', user.id);
+      console.log('👑 Post owner from props:', postOwnerId);
 
-      // User cannot claim their own item
       if (user.id === postOwnerId) {
         alert('You cannot claim your own item');
         return;
       }
 
-      console.log('🚀 5. Calling MessagingService.claimItem...');
+      // Double check the post owner from database
+      const { data: post } = await supabase
+        .from('posts')
+        .select('user_id')
+        .eq('id', postId)
+        .single();
 
-      // Start the conversation and generate pickup code
+      console.log('🔍 Post owner from database:', post?.user_id);
+
+      const actualPostOwnerId = postOwnerId || post?.user_id;
+      
+      if (!actualPostOwnerId) {
+        alert('Error: Could not determine post owner');
+        return;
+      }
+
+      console.log('🚀 Calling MessagingService.claimItem with:', {
+        postId,
+        claimantId: user.id,
+        itemOwnerId: actualPostOwnerId
+      });
+
       const result = await MessagingService.claimItem(
         postId,
         user.id,
-        postOwnerId
+        actualPostOwnerId
       );
 
-      console.log('✅ 6. Claim successful:', result);
-
-      // Redirect to messaging page with the new conversation
-      console.log('🔄 7. Redirecting to messaging page...');
+      console.log('✅ NEW CONVERSATION CREATED:', result.conversation);
+      
       router.push('/messaging');
-      router.refresh(); // Force refresh to show new conversation
+      router.refresh();
       
     } catch (error: any) {
-      console.error('❌ 8. Error claiming item:', JSON.stringify(error, null, 2));
-      console.error('❌ Full error object:', error);
+      console.error('❌ Error claiming item:', error);
       alert('Error claiming item: ' + (error.message || 'Please try again.'));
     }
   };
+
+  if (isAlreadyClaimed) {
+    return (
+      <button
+        disabled
+        className={`px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed ${className}`}
+      >
+        Already Claimed
+      </button>
+    );
+  }
 
   return (
     <button

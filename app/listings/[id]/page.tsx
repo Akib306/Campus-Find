@@ -220,7 +220,7 @@ export default function ListingPage() {
                 </p>
               </div>
 
-              {/* Claim Item Button */}
+              {/* Claim Item Button - FIXED: Properly pass postOwnerId */}
               {currentUser && !isOwnPost && !isClaimed && (
                 <div className="pt-4 border-t">
                   <ClaimItemButton 
