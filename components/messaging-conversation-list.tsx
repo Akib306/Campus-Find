@@ -1,40 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { MessagingService, Conversation } from '@/lib/messaging-service';
+import { Conversation } from '@/lib/messaging-service';
 
 interface MessagingConversationListProps {
+  conversations: Conversation[];
   onSelectConversation: (conversation: Conversation) => void;
   currentConversationId?: string;
 }
 
-export function MessagingConversationList({ onSelectConversation, currentConversationId }: MessagingConversationListProps) {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadConversations();
-  }, []);
-
-  const loadConversations = async () => {
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) return;
-
-      const userConversations = await MessagingService.getUserConversations(user.id);
-      setConversations(userConversations);
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) return <div className="p-4 text-gray-900">Loading conversations...</div>;
-
+export function MessagingConversationList({ 
+  conversations, 
+  onSelectConversation, 
+  currentConversationId 
+}: MessagingConversationListProps) {
   if (conversations.length === 0) {
     return (
       <div className="p-4 text-center text-gray-900">
