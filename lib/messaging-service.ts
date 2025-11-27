@@ -76,14 +76,19 @@ export class MessagingService {
 
       console.log('✅ Conversation created:', conversation.id);
 
-      // Send initial claim message using valid message type
+      // Send initial claim message using original messages table
       const { data: message, error: msgError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
-          message_type: 'claim_initial', // Valid type from your database
+          message_type: 'claim_initial',
+          topic: 'item_claim',
+          content: 'Hello, I believe this is my lost item',
+          extension: 'text',
           display_text: 'Hello, I believe this is my lost item',
-          sender_id: claimantId
+          sender_id: claimantId,
+          is_read: false,
+          private: false
         })
         .select()
         .single();
@@ -94,6 +99,7 @@ export class MessagingService {
       }
 
       console.log('✅ Initial message sent:', message.id);
+
       return { conversation, message };
     } catch (error) {
       console.error('❌ Error in claimItem:', JSON.stringify(error, null, 2));
@@ -161,9 +167,14 @@ export class MessagingService {
         .from('messages')
         .insert({
           conversation_id: conversationId,
-          message_type: messageType, // Will be one of the valid types
+          message_type: messageType,
+          topic: messageType,
+          content: content,
+          extension: 'text',
           display_text: finalDisplayText,
-          sender_id: currentUser.id
+          sender_id: currentUser.id,
+          is_read: false,
+          private: false
         })
         .select()
         .single();
@@ -216,21 +227,21 @@ export class MessagingService {
       throw updateError;
     }
 
-    // Send confirmation message using valid type
+    // Send confirmation message
     const confirmationText = `Confirmed! ${meetingDetails}`;
     await this.sendMenuMessage(
       conversationId,
-      'confirmation', // Valid type from your database
+      'confirmation',
       meetingDetails,
       confirmationText,
       userId
     );
 
-    // For system messages, use 'suggestion' type instead of 'system'
+    // Send system message with pickup code to both users
     const systemMessage = `Pickup arranged!\nLocation: ${location}\nTime: ${timeSlot}\n\nYour pickup code will be shown when you confirm the meeting.`;
     await this.sendMenuMessage(
       conversationId,
-      'suggestion', // Using 'suggestion' instead of invalid 'system' type
+      'suggestion',
       systemMessage,
       systemMessage,
       userId
@@ -259,13 +270,13 @@ export class MessagingService {
 
     if (convError) throw new Error('Invalid pickup code or conversation');
 
-    // Send verification completed message using valid type
+    // Send verification completed message
     const completionTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const completionText = `Verification completed! Item successfully returned. Return confirmed at ${completionTime}`;
     
     await this.sendMenuMessage(
       conversationId,
-      'confirmation', // Using 'confirmation' instead of invalid 'system' type
+      'confirmation',
       completionText,
       completionText,
       userId
