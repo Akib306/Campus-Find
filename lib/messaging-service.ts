@@ -51,7 +51,7 @@ export class MessagingService {
         .eq('id', postId);
 
       if (postError) {
-        console.error('❌ Post update error:', postError);
+        console.error('❌ Post update error:', JSON.stringify(postError, null, 2));
         throw postError;
       }
 
@@ -70,22 +70,22 @@ export class MessagingService {
         .single();
 
       if (convError) {
-        console.error('❌ Conversation creation error:', convError);
+        console.error('❌ Conversation creation error:', JSON.stringify(convError, null, 2));
         throw convError;
       }
 
       console.log('✅ Conversation created:', conversation.id);
 
-      // Send initial claim message - FIXED: Include all required fields
+      // Send initial claim message - FIXED: Include extension field
       const { data: message, error: msgError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
           message_type: 'claim_initial',
-          topic: 'item_claim', // Required field
+          topic: 'item_claim',
           content: 'Hello, I believe this is my lost item',
-          display_text: 'Hello, I believe this is my lost item',
           extension: 'text', // Required field
+          display_text: 'Hello, I believe this is my lost item',
           sender_id: claimantId,
           is_read: false,
           private: false
@@ -94,7 +94,18 @@ export class MessagingService {
         .single();
 
       if (msgError) {
-        console.error('❌ Message creation error:', msgError);
+        console.error('❌ Message creation error:', JSON.stringify(msgError, null, 2));
+        console.error('❌ Message data that failed:', {
+          conversation_id: conversation.id,
+          message_type: 'claim_initial',
+          topic: 'item_claim',
+          content: 'Hello, I believe this is my lost item',
+          extension: 'text',
+          display_text: 'Hello, I believe this is my lost item',
+          sender_id: claimantId,
+          is_read: false,
+          private: false
+        });
         throw msgError;
       }
 
@@ -102,7 +113,7 @@ export class MessagingService {
 
       return { conversation, message };
     } catch (error) {
-      console.error('❌ Error in claimItem:', error);
+      console.error('❌ Error in claimItem:', JSON.stringify(error, null, 2));
       throw error;
     }
   }
@@ -168,10 +179,10 @@ export class MessagingService {
         .insert({
           conversation_id: conversationId,
           message_type: messageType,
-          topic: messageType, // Required field
+          topic: messageType,
           content: content,
-          display_text: finalDisplayText,
           extension: 'text', // Required field
+          display_text: finalDisplayText,
           sender_id: currentUser.id,
           is_read: false,
           private: false
