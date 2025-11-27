@@ -160,40 +160,24 @@ export class MessagingService {
   static async confirmMeeting(conversationId: string, meetingDetails: string, userId: string) {
     const supabase = createClient();
 
-    // Get conversation to find post_id
-    const { data: conversation, error: convError } = await supabase
-      .from('conversations')
-      .select('post_id')
-      .eq('id', conversationId)
-      .single();
-
-    if (convError) throw convError;
-
+    // Parse meeting details (format: "Location, Time Slot")
+    const [location, timeSlot] = meetingDetails.split(',').map(s => s.trim());
+    
     // Generate pickup code
     const claimCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Update conversation with code
+    // Update conversation with code and meeting details
     const { error: updateError } = await supabase
       .from('conversations')
       .update({
-        arranged_location: meetingDetails.split(',')[0]?.trim() || '',
-        arranged_time: meetingDetails.split(',').slice(1).join(',').trim() || '',
+        arranged_location: location,
+        arranged_time: timeSlot,
         claim_code: claimCode,
         updated_at: new Date().toISOString()
       })
       .eq('id', conversationId);
 
     if (updateError) throw updateError;
-
-    // Update the post with pickup code
-    const { error: postError } = await supabase
-      .from('posts')
-      .update({
-        claim_code: claimCode
-      })
-      .eq('id', conversation.post_id);
-
-    if (postError) console.log('Post code update warning:', postError.message);
 
     // Send confirmation message
     const confirmationText = `Confirmed! ${meetingDetails}`;
@@ -205,12 +189,13 @@ export class MessagingService {
       userId
     );
 
-    // Send code message
+    // Send system message with pickup code to both users
+    const systemMessage = `Pickup arranged!\nLocation: ${location}\nTime: ${timeSlot}\n\nYour pickup code will be shown when you confirm the meeting.`;
     await this.sendMenuMessage(
       conversationId,
       'system',
-      `Pickup code: ${claimCode}\n*Share this code when you meet*`,
-      `Pickup code: ${claimCode}\n*Share this code when you meet*`,
+      systemMessage,
+      systemMessage,
       userId
     );
 
@@ -227,7 +212,8 @@ export class MessagingService {
       .update({
         item_picked_up: true,
         picked_up_at: new Date().toISOString(),
-        status: 'completed'
+        status: 'completed',
+        updated_at: new Date().toISOString()
       })
       .eq('id', conversationId)
       .eq('claim_code', claimCode)
@@ -237,11 +223,14 @@ export class MessagingService {
     if (convError) throw new Error('Invalid pickup code or conversation');
 
     // Send verification completed message
+    const completionTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const completionText = `Verification completed! Item successfully returned. Return confirmed at ${completionTime}`;
+    
     await this.sendMenuMessage(
       conversationId,
       'system',
-      `Verification completed! Item successfully returned.`,
-      `Verification completed! Item successfully returned.`,
+      completionText,
+      completionText,
       userId
     );
 
@@ -267,8 +256,8 @@ export class MessagingService {
     const templates: Record<string, string> = {
       'claim_initial': 'Hello, I believe this is my lost item',
       'suggestion': `Suggested: ${content}`,
-      'confirmation': `Confirmed! ${content}`,
-      'status_update': `Status: ${content}`,
+      'confirmation': `Confirmed: ${content}`,
+      'status_update': `Status Update: ${content}`,
       'share_contact': 'Shared contact information',
       'system': content || 'System message'
     };
