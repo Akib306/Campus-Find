@@ -37,44 +37,52 @@ export default function MessagingPage() {
     if (!user) return;
 
     try {
-      // Simple test without post updates
-      const TEMPORARY_TEST_POST_ID = '00000000-0000-0000-0000-000000000000';
+      console.log('Starting test conversation creation...');
       
       const supabase = createClient();
+      
+      // Test 1: Check if we can insert into conversations
+      console.log('Attempting to create conversation...');
       const { data: conversation, error: convError } = await supabase
         .from('conversations')
         .insert({
-          post_id: TEMPORARY_TEST_POST_ID,
+          post_id: '00000000-0000-0000-0000-000000000000',
           user1_id: user.id,
           user2_id: user.id,
           status: 'active'
         })
-        .select(`
-          *,
-          user1_profile:user1_id(username, email),
-          user2_profile:user2_id(username, email)
-        `)
+        .select()
         .single();
 
-      if (convError) throw convError;
+      if (convError) {
+        console.error('Conversation creation failed:', convError);
+        throw convError;
+      }
 
-      const { data: message, error: msgError } = await supabase
+      console.log('Conversation created successfully:', conversation.id);
+
+      // Test 2: Check if we can insert into messages
+      console.log('Attempting to create message...');
+      const { error: msgError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
           message_type: 'claim_initial',
           display_text: 'Hello, I believe this is my lost item',
           sender_id: user.id
-        })
-        .select()
-        .single();
+        });
 
-      if (msgError) throw msgError;
+      if (msgError) {
+        console.error('Message creation failed:', msgError);
+        throw msgError;
+      }
 
+      console.log('Test conversation created successfully!');
       setConversations(prev => [conversation, ...prev]);
       setSelectedConversation(conversation);
+      
     } catch (error) {
-      console.error('Error creating test conversation:', error);
+      console.error('Full error details:', error);
     }
   };
 
