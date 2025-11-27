@@ -13,6 +13,8 @@ export function MessagingConversationList({
   onSelectConversation, 
   currentConversationId 
 }: MessagingConversationListProps) {
+  console.log('📋 Conversations passed to list:', conversations);
+
   if (conversations.length === 0) {
     return (
       <div className="p-4 text-center text-gray-900">
@@ -32,7 +34,7 @@ export function MessagingConversationList({
           onClick={() => onSelectConversation(conversation)}
         >
           <div className="font-semibold text-sm">
-            Conversation about Item
+            Conversation {conversation.id.slice(0, 8)}...
           </div>
           <div className="text-xs text-gray-600 mt-1">
             Last updated: {new Date(conversation.updated_at).toLocaleDateString()}
