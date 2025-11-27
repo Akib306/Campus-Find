@@ -13,8 +13,9 @@ import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { MapPin } from 'lucide-react';
+import { MapPin, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "./ui/button";
 
 type Post = {
   id: string;
@@ -215,7 +216,18 @@ export function LostItemsGrid() {
                   <AvatarFallback className="bg-accent">{post.posting_user?.email ? post.posting_user?.email.charAt(0).toUpperCase() : "?"}</AvatarFallback>
                 </Avatar>
                 <p className="text-base text-muted-foreground">{post.posting_user?.username}</p>
-                
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <p>Did you find this post helpful?</p>
+                <Button variant="ghost" size="sm">
+                  <ThumbsUp />
+                  Yes
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <ThumbsDown />
+                  No
+                </Button>
               </div>
             </CardContent>
         </Card>
