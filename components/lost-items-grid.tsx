@@ -158,8 +158,7 @@ export function LostItemsGrid() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
       {posts.map((post) => (
-        <Link key={post.id} href={`/listings/${post.id}`}>
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+        <Card key={post.id} className="h-full hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
                 {post.image_path && post.image_path.length > 0 ? (
@@ -219,8 +218,7 @@ export function LostItemsGrid() {
                 
               </div>
             </CardContent>
-          </Card>
-        </Link>
+        </Card>
       ))}
     </div>
   );
