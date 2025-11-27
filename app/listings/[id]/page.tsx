@@ -17,6 +17,7 @@ import Image from "next/image";
 import { ImageGalleryModal } from "@/components/image-gallery-modal";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { ClaimItemButton } from "@/components/claim-item-button";
 
 type Post = {
   id: string;
@@ -28,6 +29,7 @@ type Post = {
   post_status: string;
   created_at: string;
   user_id: string;
+  claimed_by_user_id?: string;
 };
 
 export default function ListingPage() {
@@ -35,6 +37,7 @@ export default function ListingPage() {
   const router = useRouter();
   const postId = params.id as string;
   const [post, setPost] = useState<Post | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
@@ -43,9 +46,15 @@ export default function ListingPage() {
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
-    const fetchPost = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
+        
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUser(user);
+
+        // Fetch post
         const { data, error: fetchError } = await supabase
           .from("posts")
           .select("*")
@@ -69,7 +78,7 @@ export default function ListingPage() {
     };
 
     if (postId) {
-      fetchPost();
+      fetchData();
     }
   }, [postId, supabase]);
 
@@ -115,6 +124,9 @@ export default function ListingPage() {
     );
   }
 
+  const isClaimed = !!post.claimed_by_user_id;
+  const isOwnPost = currentUser && post.user_id === currentUser.id;
+
   return (
     <>
       <main className="min-h-screen flex flex-col">
@@ -132,13 +144,20 @@ export default function ListingPage() {
             <CardHeader>
               <div className="flex items-start justify-between gap-4 mb-4">
                 <CardTitle className="text-2xl">{post.item_name}</CardTitle>
-                <Badge
-                  className={`${getCategoryColor(
-                    post.item_category
-                  )} text-white capitalize`}
-                >
-                  {post.item_category}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className={`${getCategoryColor(
+                      post.item_category
+                    )} text-white capitalize`}
+                  >
+                    {post.item_category}
+                  </Badge>
+                  {isClaimed && (
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                      Claimed
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               {post.image_path && post.image_path.length > 0 ? (
@@ -200,6 +219,41 @@ export default function ListingPage() {
                   })}
                 </p>
               </div>
+
+              {/* Claim Item Button */}
+              {currentUser && !isOwnPost && !isClaimed && (
+                <div className="pt-4 border-t">
+                  <ClaimItemButton 
+                    postId={post.id}
+                    postOwnerId={post.user_id}
+                    className="w-full"
+                  />
+                </div>
+              )}
+
+              {isOwnPost && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground text-center">
+                    This is your post. Wait for someone to claim it.
+                  </p>
+                </div>
+              )}
+
+              {isClaimed && !isOwnPost && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground text-center">
+                    This item has already been claimed.
+                  </p>
+                </div>
+              )}
+
+              {!currentUser && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Please log in to claim this item.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
