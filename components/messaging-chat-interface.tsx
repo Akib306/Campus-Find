@@ -25,7 +25,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   useEffect(() => {
     loadMessages();
     
-    // Real-time subscription
+    // Real-time subscription - UPDATED to use chat_messages table
     const supabase = createClient();
     
     const channel = supabase
@@ -35,7 +35,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages',
+          table: 'chat_messages',
           filter: `conversation_id=eq.${conversation.id}`
         },
         (payload) => {
