@@ -14,21 +14,21 @@ interface ClaimItemButtonProps {
 export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimItemButtonProps) {
   const router = useRouter();
   const [isAlreadyClaimed, setIsAlreadyClaimed] = useState(false);
+  const [postData, setPostData] = useState<any>(null);
 
   useEffect(() => {
-    console.log('📋 ClaimItemButton props:', { postId, postOwnerId });
-    checkIfClaimed();
+    fetchPostData();
   }, [postId, postOwnerId]);
 
-  const checkIfClaimed = async () => {
+  const fetchPostData = async () => {
     const supabase = createClient();
     const { data: post } = await supabase
       .from('posts')
-      .select('claimed_by_user_id, user_id')
+      .select('user_id, claimed_by_user_id, item_name')
       .eq('id', postId)
       .single();
     
-    console.log('📝 Post data:', post);
+    setPostData(post);
     
     if (post?.claimed_by_user_id) {
       setIsAlreadyClaimed(true);
@@ -37,9 +37,6 @@ export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimIt
 
   const handleClaimItem = async () => {
     try {
-      console.log('🔧 Claim button clicked');
-      console.log('📦 Props received:', { postId, postOwnerId });
-      
       if (isAlreadyClaimed) {
         alert('This item has already been claimed by someone else.');
         return;
@@ -53,35 +50,18 @@ export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimIt
         return;
       }
 
-      console.log('👤 Current user:', user.id);
-      console.log('👑 Post owner from props:', postOwnerId);
+      // Determine the actual post owner
+      const actualPostOwnerId = postOwnerId || postData?.user_id;
+      
+      if (!actualPostOwnerId) {
+        alert('Error: Could not determine post owner. Please try again.');
+        return;
+      }
 
-      if (user.id === postOwnerId) {
+      if (user.id === actualPostOwnerId) {
         alert('You cannot claim your own item');
         return;
       }
-
-      // Double check the post owner from database
-      const { data: post } = await supabase
-        .from('posts')
-        .select('user_id')
-        .eq('id', postId)
-        .single();
-
-      console.log('🔍 Post owner from database:', post?.user_id);
-
-      const actualPostOwnerId = postOwnerId || post?.user_id;
-      
-      if (!actualPostOwnerId) {
-        alert('Error: Could not determine post owner');
-        return;
-      }
-
-      console.log('🚀 Calling MessagingService.claimItem with:', {
-        postId,
-        claimantId: user.id,
-        itemOwnerId: actualPostOwnerId
-      });
 
       const result = await MessagingService.claimItem(
         postId,
@@ -89,13 +69,12 @@ export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimIt
         actualPostOwnerId
       );
 
-      console.log('✅ NEW CONVERSATION CREATED:', result.conversation);
-      
-      router.push('/messaging');
+      // Redirect to messaging page WITH the new conversation ID
+      router.push(`/messaging?conversation=${result.conversation.id}`);
       router.refresh();
       
     } catch (error: any) {
-      console.error('❌ Error claiming item:', error);
+      console.error('Error claiming item:', error);
       alert('Error claiming item: ' + (error.message || 'Please try again.'));
     }
   };
