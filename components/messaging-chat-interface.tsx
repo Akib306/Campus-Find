@@ -25,8 +25,10 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   useEffect(() => {
     loadMessages();
     
-    // Real-time subscription - UPDATED to use chat_messages table
+    // Real-time subscription for original messages table
     const supabase = createClient();
+    
+    console.log('🔔 Setting up real-time subscription for conversation:', conversation.id);
     
     const channel = supabase
       .channel(`conversation:${conversation.id}`)
@@ -35,17 +37,29 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'chat_messages',
+          table: 'messages',
           filter: `conversation_id=eq.${conversation.id}`
         },
         (payload) => {
+          console.log('📨 Real-time update received:', payload);
           const newMessage = payload.new as Message;
-          setMessages(prev => [...prev, newMessage]);
+          console.log('🆕 New message to add:', newMessage);
+          setMessages(prev => {
+            const updated = [...prev, newMessage];
+            console.log('📊 Messages after update:', updated);
+            return updated;
+          });
         }
       )
-      .subscribe();
+      .on('system', { event: 'ERROR' }, (error) => {
+        console.error('❌ Real-time subscription error:', error);
+      })
+      .subscribe((status) => {
+        console.log('📡 Real-time subscription status:', status);
+      });
 
     return () => {
+      console.log('🧹 Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [conversation.id]);
@@ -56,7 +70,9 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
 
   const loadMessages = async () => {
     try {
+      console.log('📥 Loading messages for conversation:', conversation.id);
       const conversationMessages = await MessagingService.getConversationMessages(conversation.id);
+      console.log('📨 Messages loaded:', conversationMessages);
       setMessages(conversationMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
