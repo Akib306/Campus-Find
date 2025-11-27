@@ -29,7 +29,7 @@ export interface Message {
 export interface PickupOption {
   id: string;
   option_type: string;
-  value: string;
+  value;
   display_text: string;
 }
 
@@ -120,40 +120,57 @@ export class MessagingService {
     userId?: string
   ) {
     const supabase = createClient();
-    let user = null;
     
+    // Get current user
+    let currentUser = null;
     if (userId) {
-      user = { id: userId };
+      currentUser = { id: userId };
     } else {
       const { data: userData } = await supabase.auth.getUser();
-      user = userData.user;
+      currentUser = userData.user;
     }
     
-    if (!user) throw new Error('Not authenticated');
+    if (!currentUser) {
+      console.error('No authenticated user found');
+      throw new Error('Not authenticated');
+    }
 
+    console.log('Sending message:', { conversationId, messageType, content, displayText, userId: currentUser.id });
+
+    // Generate display text if not provided
     const finalDisplayText = displayText || this.generateDisplayText(messageType, content);
 
-    const { data: message, error } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        message_type: messageType,
-        content,
-        display_text: finalDisplayText,
-        sender_id: user.id
-      })
-      .select()
-      .single();
+    try {
+      const { data: message, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          message_type: messageType,
+          content: content,
+          display_text: finalDisplayText,
+          sender_id: currentUser.id
+        })
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error inserting message:', error);
+        throw error;
+      }
 
-    // Update conversation timestamp
-    await supabase
-      .from('conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId);
+      console.log('Message sent successfully:', message);
 
-    return message;
+      // Update conversation timestamp
+      await supabase
+        .from('conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', conversationId);
+
+      return message;
+    } catch (error) {
+      console.error('Error in sendMenuMessage:', error);
+      throw error;
+    }
   }
 
   // Confirm meeting and generate pickup code
@@ -166,6 +183,8 @@ export class MessagingService {
     // Generate pickup code
     const claimCode = Math.floor(100000 + Math.random() * 900000).toString();
 
+    console.log('Confirming meeting:', { conversationId, location, timeSlot, claimCode });
+
     // Update conversation with code and meeting details
     const { error: updateError } = await supabase
       .from('conversations')
@@ -177,7 +196,10 @@ export class MessagingService {
       })
       .eq('id', conversationId);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('Error updating conversation:', updateError);
+      throw updateError;
+    }
 
     // Send confirmation message
     const confirmationText = `Confirmed! ${meetingDetails}`;
