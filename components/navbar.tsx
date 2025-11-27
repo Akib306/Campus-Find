@@ -7,6 +7,7 @@ import { hasEnvVars } from "@/lib/utils";
 import { NotificationBell } from "./notification-bell";
 import { NewPostForm } from "./new-post-form";
 import { AlertModal } from "./alert-modal";
+import { MessageSquare } from "lucide-react";
 
 export async function Navbar() {
   return (
@@ -25,6 +26,13 @@ export async function Navbar() {
             <EnvVarWarning />
           ) : (
             <>
+              <Link 
+                href="/messaging" 
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Messages
+              </Link>
               <NewPostForm />
               <AlertModal />
               <NotificationBell />
