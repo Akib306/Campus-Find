@@ -13,6 +13,7 @@ import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { MapPin } from 'lucide-react';
 
 type Post = {
   id: string;
@@ -146,7 +147,7 @@ export function LostItemsGrid() {
               </div>
               <div className="flex items-start justify-between gap-2">
                 <CardTitle className="text-lg line-clamp-2">
-                  {post.item_name}
+                  {post.item_name} 
                 </CardTitle>
                 <Badge
                   className={`${getCategoryColor(
@@ -158,13 +159,15 @@ export function LostItemsGrid() {
               </div>
             </CardHeader>
             <CardContent>
-              <CardDescription className="line-clamp-2 mb-2">
+              <CardDescription className="line-clamp-2 mb-2 text-base">
                 {post.description || "No description"}
               </CardDescription>
               {post.location_name && (
-                <p className="text-sm text-muted-foreground mb-2">
-                  📍 {post.location_name}
-                </p>
+                <div className="flex flex-col text-sm text-muted-foreground mb-2">
+                  <span className="flex items-center gap-1 text-sm">
+                    <MapPin size={14} /> {post.location_name}
+                  </span>
+                </div>
               )}
               <p className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(post.created_at), {
