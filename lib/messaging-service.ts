@@ -29,7 +29,7 @@ export interface Message {
 export interface PickupOption {
   id: string;
   option_type: string;
-  value;
+  value: string;
   display_text: string;
 }
 
@@ -39,6 +39,8 @@ export class MessagingService {
     const supabase = createClient();
 
     try {
+      console.log('🔄 Starting claim process...', { postId, claimantId, itemOwnerId });
+
       // Update posts table
       const { error: postError } = await supabase
         .from('posts')
@@ -48,7 +50,12 @@ export class MessagingService {
         })
         .eq('id', postId);
 
-      if (postError) console.log('Posts update warning:', postError.message);
+      if (postError) {
+        console.error('❌ Post update error:', postError);
+        throw postError;
+      }
+
+      console.log('✅ Post updated successfully');
 
       // Create conversation
       const { data: conversation, error: convError } = await supabase
@@ -62,25 +69,40 @@ export class MessagingService {
         .select()
         .single();
 
-      if (convError) throw convError;
+      if (convError) {
+        console.error('❌ Conversation creation error:', convError);
+        throw convError;
+      }
 
-      // Send initial claim message
+      console.log('✅ Conversation created:', conversation.id);
+
+      // Send initial claim message - FIXED: Include all required fields
       const { data: message, error: msgError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
           message_type: 'claim_initial',
+          topic: 'item_claim', // Required field
+          content: 'Hello, I believe this is my lost item',
           display_text: 'Hello, I believe this is my lost item',
-          sender_id: claimantId
+          extension: 'text', // Required field
+          sender_id: claimantId,
+          is_read: false,
+          private: false
         })
         .select()
         .single();
 
-      if (msgError) throw msgError;
+      if (msgError) {
+        console.error('❌ Message creation error:', msgError);
+        throw msgError;
+      }
+
+      console.log('✅ Initial message sent:', message.id);
 
       return { conversation, message };
     } catch (error) {
-      console.error('Error in claimItem:', error);
+      console.error('❌ Error in claimItem:', error);
       throw error;
     }
   }
@@ -146,9 +168,13 @@ export class MessagingService {
         .insert({
           conversation_id: conversationId,
           message_type: messageType,
+          topic: messageType, // Required field
           content: content,
           display_text: finalDisplayText,
-          sender_id: currentUser.id
+          extension: 'text', // Required field
+          sender_id: currentUser.id,
+          is_read: false,
+          private: false
         })
         .select()
         .single();
