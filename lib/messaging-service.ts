@@ -76,41 +76,24 @@ export class MessagingService {
 
       console.log('✅ Conversation created:', conversation.id);
 
-      // Send initial claim message - FIXED: Include extension field
+      // Send initial claim message using valid message type
       const { data: message, error: msgError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
-          message_type: 'claim_initial',
-          topic: 'item_claim',
-          content: 'Hello, I believe this is my lost item',
-          extension: 'text', // Required field
+          message_type: 'claim_initial', // Valid type from your database
           display_text: 'Hello, I believe this is my lost item',
-          sender_id: claimantId,
-          is_read: false,
-          private: false
+          sender_id: claimantId
         })
         .select()
         .single();
 
       if (msgError) {
         console.error('❌ Message creation error:', JSON.stringify(msgError, null, 2));
-        console.error('❌ Message data that failed:', {
-          conversation_id: conversation.id,
-          message_type: 'claim_initial',
-          topic: 'item_claim',
-          content: 'Hello, I believe this is my lost item',
-          extension: 'text',
-          display_text: 'Hello, I believe this is my lost item',
-          sender_id: claimantId,
-          is_read: false,
-          private: false
-        });
         throw msgError;
       }
 
       console.log('✅ Initial message sent:', message.id);
-
       return { conversation, message };
     } catch (error) {
       console.error('❌ Error in claimItem:', JSON.stringify(error, null, 2));
@@ -178,14 +161,9 @@ export class MessagingService {
         .from('messages')
         .insert({
           conversation_id: conversationId,
-          message_type: messageType,
-          topic: messageType,
-          content: content,
-          extension: 'text', // Required field
+          message_type: messageType, // Will be one of the valid types
           display_text: finalDisplayText,
-          sender_id: currentUser.id,
-          is_read: false,
-          private: false
+          sender_id: currentUser.id
         })
         .select()
         .single();
@@ -238,21 +216,21 @@ export class MessagingService {
       throw updateError;
     }
 
-    // Send confirmation message
+    // Send confirmation message using valid type
     const confirmationText = `Confirmed! ${meetingDetails}`;
     await this.sendMenuMessage(
       conversationId,
-      'confirmation',
+      'confirmation', // Valid type from your database
       meetingDetails,
       confirmationText,
       userId
     );
 
-    // Send system message with pickup code to both users
+    // For system messages, use 'suggestion' type instead of 'system'
     const systemMessage = `Pickup arranged!\nLocation: ${location}\nTime: ${timeSlot}\n\nYour pickup code will be shown when you confirm the meeting.`;
     await this.sendMenuMessage(
       conversationId,
-      'system',
+      'suggestion', // Using 'suggestion' instead of invalid 'system' type
       systemMessage,
       systemMessage,
       userId
@@ -281,13 +259,13 @@ export class MessagingService {
 
     if (convError) throw new Error('Invalid pickup code or conversation');
 
-    // Send verification completed message
+    // Send verification completed message using valid type
     const completionTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const completionText = `Verification completed! Item successfully returned. Return confirmed at ${completionTime}`;
     
     await this.sendMenuMessage(
       conversationId,
-      'system',
+      'confirmation', // Using 'confirmation' instead of invalid 'system' type
       completionText,
       completionText,
       userId
@@ -316,9 +294,7 @@ export class MessagingService {
       'claim_initial': 'Hello, I believe this is my lost item',
       'suggestion': `Suggested: ${content}`,
       'confirmation': `Confirmed: ${content}`,
-      'status_update': `Status Update: ${content}`,
-      'share_contact': 'Shared contact information',
-      'system': content || 'System message'
+      'share_contact': 'Shared contact information'
     };
 
     return templates[messageType] || content || 'Message';
