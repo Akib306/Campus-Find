@@ -33,75 +33,6 @@ export default function MessagingPage() {
     }
   };
 
-  const handleCreateTestConversation = async () => {
-    if (!user) return;
-
-    try {
-      console.log('Starting test conversation creation for user:', user.id);
-      
-      const supabase = createClient();
-      
-      // Test 1: Check if we can insert into conversations
-      console.log('Attempting to create conversation...');
-      const { data: conversation, error: convError } = await supabase
-        .from('conversations')
-        .insert({
-          post_id: '00000000-0000-0000-0000-000000000000',
-          user1_id: user.id,
-          user2_id: user.id,
-          status: 'active'
-        })
-        .select()
-        .single();
-
-      if (convError) {
-        console.error('Conversation creation failed - full error:', {
-          message: convError.message,
-          details: convError.details,
-          hint: convError.hint,
-          code: convError.code
-        });
-        throw convError;
-      }
-
-      console.log('Conversation created successfully:', conversation.id);
-
-      // Test 2: Check if we can insert into messages
-      console.log('Attempting to create message...');
-      const { error: msgError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversation.id,
-          message_type: 'claim_initial',
-          display_text: 'Hello, I believe this is my lost item',
-          sender_id: user.id
-        });
-
-      if (msgError) {
-        console.error('Message creation failed - full error:', {
-          message: msgError.message,
-          details: msgError.details,
-          hint: msgError.hint,
-          code: msgError.code
-        });
-        throw msgError;
-      }
-
-      console.log('Test conversation created successfully!');
-      setConversations(prev => [conversation, ...prev]);
-      setSelectedConversation(conversation);
-      
-    } catch (error: any) {
-      console.error('Full error details:', {
-        name: error?.name,
-        message: error?.message,
-        stack: error?.stack,
-        code: error?.code,
-        details: error?.details
-      });
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen text-gray-900">
@@ -113,7 +44,7 @@ export default function MessagingPage() {
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen text-gray-900">
-        <div className="text-lg">Please log in to test messaging</div>
+        <div className="text-lg">Please log in to view messages</div>
       </div>
     );
   }
@@ -129,15 +60,10 @@ export default function MessagingPage() {
         {/* Left Sidebar - Conversations */}
         <div className="lg:col-span-1">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Conversations</h2>
-            <button
-              onClick={handleCreateTestConversation}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-            >
-              + Test Conversation
-            </button>
+            <h2 className="text-xl font-semibold">Your Conversations</h2>
           </div>
           <MessagingConversationList
+            conversations={conversations}
             onSelectConversation={setSelectedConversation}
             currentConversationId={selectedConversation?.id}
           />
@@ -154,7 +80,11 @@ export default function MessagingPage() {
           ) : (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <div className="text-gray-500">
-                Select a conversation from the list or create a test conversation to start messaging.
+                Select a conversation from the list to start messaging.
+                <br />
+                <span className="text-sm">
+                  Claim an item on the listings page to start a new conversation.
+                </span>
               </div>
             </div>
           )}
