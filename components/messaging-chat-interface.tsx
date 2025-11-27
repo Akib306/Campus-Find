@@ -19,12 +19,8 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   const [showPickupConfirm, setShowPickupConfirm] = useState(false);
   const [pickupCode, setPickupCode] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<PickupOption | null>(null);
+  const [selectedTime, setSelectedTime] = useState<PickupOption | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Get the other user's profile
-  const otherUser = conversation.user1_id === currentUser.id 
-    ? conversation.user2_profile 
-    : conversation.user1_profile;
 
   useEffect(() => {
     loadMessages();
@@ -84,16 +80,23 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   };
 
   const handleTimeSelect = async (timeSlot: PickupOption) => {
+    setSelectedTime(timeSlot);
     setShowTimePicker(false);
     
     try {
+      // Send the suggestion message
       const suggestionText = `${selectedLocation?.display_text}, ${timeSlot.display_text}`;
+      console.log('Sending suggestion:', suggestionText);
+      
       await MessagingService.sendMenuMessage(
         conversation.id,
         'suggestion',
         suggestionText
       );
+      
+      // Reset selections
       setSelectedLocation(null);
+      setSelectedTime(null);
     } catch (error) {
       console.error('Error sending suggestion:', error);
     }
@@ -103,6 +106,8 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     try {
       const message = messages.find(m => m.id === messageId);
       if (message && message.content) {
+        console.log('Confirming meeting with details:', message.content);
+        
         await MessagingService.confirmMeeting(
           conversation.id,
           message.content,
@@ -137,6 +142,8 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   };
 
   const getActionButtons = (lastMessage: Message) => {
+    console.log('Last message type:', lastMessage.message_type);
+    
     if (lastMessage.message_type === 'suggestion') {
       return (
         <div className="flex gap-2 mt-2">
@@ -206,7 +213,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       {/* Chat Header */}
       <div className="p-4 border-b border-gray-200 bg-gray-50">
         <h3 className="font-semibold text-gray-900">
-          {otherUser?.username || 'User'}
+          Conversation
         </h3>
       </div>
 
@@ -277,7 +284,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-80 max-w-sm text-gray-900">
             <h3 className="text-lg font-semibold mb-4">Confirm Item Return</h3>
-            <p className="mb-4 text-sm">Enter the 6-digit pickup code from {otherUser?.username || 'the owner'}:</p>
+            <p className="mb-4 text-sm">Enter the 6-digit pickup code:</p>
             <input
               type="text"
               value={pickupCode}
