@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Image from "next/image";
@@ -59,6 +59,9 @@ export function ImageGalleryModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl w-full p-0 bg-black/95 border-none">
+        <DialogTitle className="sr-only">
+          Image Gallery - Image {currentIndex + 1} of {images.length}
+        </DialogTitle>
         <div className="relative w-full h-[80vh] flex items-center justify-center">
           {/* Close button */}
           <Button
