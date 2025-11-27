@@ -14,6 +14,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { MapPin } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 
 type Post = {
   id: string;
@@ -25,6 +26,11 @@ type Post = {
   post_status: string;
   created_at: string;
   user_id: string;
+  posting_user: {
+    username: string | null;
+    email: string;
+    avatar_url: string | null;
+  } | null;
 };
 
 export function LostItemsGrid() {
@@ -38,7 +44,22 @@ export function LostItemsGrid() {
       setIsLoading(true);
       const { data, error: fetchError } = await supabase
         .from("posts")
-        .select("*")
+        .select(`
+          id,
+          item_name,
+          description,
+          item_category,
+          location_name,
+          image_path,
+          post_status,
+          created_at,
+          user_id,
+          posting_user:profiles!posts_user_id_fkey (
+            username,
+            email,
+            avatar_url
+          )
+        `)
         .eq("post_status", "open")
         .order("created_at", { ascending: false });
 
@@ -46,7 +67,17 @@ export function LostItemsGrid() {
         throw fetchError;
       }
 
-      setPosts(data || []);
+      // Supabase returns joined relations as arrays even for one-to-one FKs,
+      // so normalize to a single profile object to match the Post type.
+      setPosts(
+        (data ?? []).map((post) => ({
+          ...post,
+          posting_user: Array.isArray(post.posting_user)
+            ? post.posting_user[0] ?? null
+            : post.posting_user ?? null,
+        }))
+      );
+
     } catch (err: unknown) {
       // Type as any for debugging
       console.error("Full Error Object:", JSON.stringify(err, null, 2));
@@ -174,6 +205,8 @@ export function LostItemsGrid() {
                   addSuffix: true,
                 })}
               </p>
+              <hr className="my-2 border-accent" />
+              
             </CardContent>
           </Card>
         </Link>
