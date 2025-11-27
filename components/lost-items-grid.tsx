@@ -26,7 +26,11 @@ type Post = {
   user_id: string;
 };
 
-export function LostItemsGrid() {
+interface LostItemsGridProps {
+  categoryFilter?: string | null;
+}
+
+export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,11 +39,15 @@ export function LostItemsGrid() {
   const fetchLostItems = useCallback(async () => {
     try {
       setIsLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("post_status", "open")
-        .order("created_at", { ascending: false });
+      let query = supabase.from("posts").select("*").eq("post_status", "open");
+
+      if (categoryFilter) {
+        query = query.eq("item_category", categoryFilter);
+      }
+
+      const { data, error: fetchError } = await query.order("created_at", {
+        ascending: false,
+      });
 
       if (fetchError) {
         throw fetchError;
@@ -56,7 +64,7 @@ export function LostItemsGrid() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, categoryFilter]);
 
   useEffect(() => {
     fetchLostItems();
@@ -124,57 +132,112 @@ export function LostItemsGrid() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-      {posts.map((post) => (
-        <Link key={post.id} href={`/listings/${post.id}`}>
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
-                {post.image_path && post.image_path.length > 0 ? (
-                  <Image
-                    src={post.image_path[0]}
-                    alt={post.item_name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    No image
-                  </div>
-                )}
-              </div>
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-lg line-clamp-2">
-                  {post.item_name}
-                </CardTitle>
-                <Badge
-                  className={`${getCategoryColor(
-                    post.item_category
-                  )} text-white capitalize`}
-                >
-                  {post.item_category}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="line-clamp-2 mb-2">
-                {post.description || "No description"}
-              </CardDescription>
-              {post.location_name && (
-                <p className="text-sm text-muted-foreground mb-2">
-                  📍 {post.location_name}
-                </p>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+        {posts.map((post) => {
+          const hasImages = post.image_path && post.image_path.length > 0;
+
+          return (
+            <Card
+              key={post.id}
+              className={`h-full ${
+                !hasImages
+                  ? "cursor-pointer hover:shadow-lg transition-shadow"
+                  : ""
+              }`}
+            >
+              {!hasImages ? (
+                <Link href={`/listings/${post.id}`} className="block">
+                  <CardHeader>
+                    <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        No image
+                      </div>
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-lg line-clamp-2">
+                        {post.item_name}
+                      </CardTitle>
+                      <Badge
+                        className={`${getCategoryColor(
+                          post.item_category
+                        )} text-white capitalize`}
+                      >
+                        {post.item_category}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="line-clamp-2 mb-2">
+                      {post.description || "No description"}
+                    </CardDescription>
+                    {post.location_name && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        📍 {post.location_name}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(post.created_at), {
+                        addSuffix: true,
+                      })}
+                    </p>
+                  </CardContent>
+                </Link>
+              ) : (
+                <>
+                  <CardHeader>
+                    <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
+                      <Link href={`/listings/${post.id}`}>
+                        <div className="relative w-full h-full cursor-pointer hover:opacity-90 transition-opacity">
+                          <Image
+                            src={post.image_path[0]}
+                            alt={post.item_name}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          />
+                          {post.image_path.length > 1 && (
+                            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                              +{post.image_path.length - 1}
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-lg line-clamp-2">
+                        {post.item_name}
+                      </CardTitle>
+                      <Badge
+                        className={`${getCategoryColor(
+                          post.item_category
+                        )} text-white capitalize`}
+                      >
+                        {post.item_category}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="line-clamp-2 mb-2">
+                      {post.description || "No description"}
+                    </CardDescription>
+                    {post.location_name && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        📍 {post.location_name}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(post.created_at), {
+                        addSuffix: true,
+                      })}
+                    </p>
+                  </CardContent>
+                </>
               )}
-              <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(post.created_at), {
-                  addSuffix: true,
-                })}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-      ))}
-    </div>
+            </Card>
+          );
+        })}
+      </div>
+    </>
   );
 }
