@@ -14,7 +14,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { MapPin } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Post = {
   id: string;
@@ -205,8 +205,19 @@ export function LostItemsGrid() {
                   addSuffix: true,
                 })}
               </p>
+
               <hr className="my-2 border-accent" />
-              
+
+              <div className="flex items-center gap-2 border-border">
+                <Avatar>
+                  {post.posting_user?.avatar_url && (
+                    <AvatarImage src={post.posting_user?.avatar_url} alt={post.posting_user?.email} />
+                  )}
+                  <AvatarFallback className="bg-accent">{post.posting_user?.email ? post.posting_user?.email.charAt(0).toUpperCase() : "?"}</AvatarFallback>
+                </Avatar>
+                <p className="text-base text-muted-foreground">{post.posting_user?.username}</p>
+                
+              </div>
             </CardContent>
           </Card>
         </Link>
