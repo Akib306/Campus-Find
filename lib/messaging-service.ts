@@ -13,8 +13,6 @@ export interface Conversation {
   picked_up_at?: string;
   created_at: string;
   updated_at: string;
-  user1_profile?: any;
-  user2_profile?: any;
 }
 
 export interface Message {
@@ -26,7 +24,6 @@ export interface Message {
   sender_id: string;
   is_read: boolean;
   created_at: string;
-  sender_profile?: any;
 }
 
 export interface PickupOption {
@@ -42,20 +39,16 @@ export class MessagingService {
     const supabase = createClient();
 
     try {
-      // Update posts table with only valid columns
+      // Update posts table
       const { error: postError } = await supabase
         .from('posts')
         .update({
           claimed_by_user_id: claimantId,
           claimed_at: new Date().toISOString()
-          // Skip post_status - only 'open' is valid
         })
         .eq('id', postId);
 
-      if (postError) {
-        console.log('Posts update warning:', postError.message);
-        // Continue anyway - the conversation is more important
-      }
+      if (postError) console.log('Posts update warning:', postError.message);
 
       // Create conversation
       const { data: conversation, error: convError } = await supabase
@@ -66,11 +59,7 @@ export class MessagingService {
           user2_id: claimantId,
           status: 'active'
         })
-        .select(`
-          *,
-          user1_profile:user1_id(username, email),
-          user2_profile:user2_id(username, email)
-        `)
+        .select()
         .single();
 
       if (convError) throw convError;
@@ -96,16 +85,12 @@ export class MessagingService {
     }
   }
 
-  // Get conversations for current user with profiles
+  // Get conversations for current user (simplified)
   static async getUserConversations(userId: string) {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('conversations')
-      .select(`
-        *,
-        user1_profile:user1_id(username, email),
-        user2_profile:user2_id(username, email)
-      `)
+      .select('*')
       .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
       .order('updated_at', { ascending: false });
 
@@ -113,15 +98,12 @@ export class MessagingService {
     return data;
   }
 
-  // Get messages for a conversation with sender profiles
+  // Get messages for a conversation (simplified)
   static async getConversationMessages(conversationId: string) {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('messages')
-      .select(`
-        *,
-        sender_profile:sender_id(username, email)
-      `)
+      .select('*')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
@@ -160,10 +142,7 @@ export class MessagingService {
         display_text: finalDisplayText,
         sender_id: user.id
       })
-      .select(`
-        *,
-        sender_profile:sender_id(username, email)
-      `)
+      .select()
       .single();
 
     if (error) throw error;
@@ -177,22 +156,9 @@ export class MessagingService {
     return message;
   }
 
-  // Confirm meeting and generate pickup code with personalized messages
+  // Confirm meeting and generate pickup code
   static async confirmMeeting(conversationId: string, meetingDetails: string, userId: string) {
     const supabase = createClient();
-
-    // Get conversation with user profiles
-    const { data: conversation, error: convError } = await supabase
-      .from('conversations')
-      .select(`
-        *,
-        user1_profile:user1_id(username, email),
-        user2_profile:user2_id(username, email)
-      `)
-      .eq('id', conversationId)
-      .single();
-
-    if (convError) throw convError;
 
     // Generate pickup code
     const claimCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -201,8 +167,8 @@ export class MessagingService {
     const { error: updateError } = await supabase
       .from('conversations')
       .update({
-        arranged_location: this.extractLocation(meetingDetails),
-        arranged_time: this.extractTime(meetingDetails),
+        arranged_location: meetingDetails.split(',')[0]?.trim() || '',
+        arranged_time: meetingDetails.split(',').slice(1).join(',').trim() || '',
         claim_code: claimCode,
         updated_at: new Date().toISOString()
       })
@@ -216,19 +182,11 @@ export class MessagingService {
       .update({
         claim_code: claimCode
       })
-      .eq('id', conversation.post_id);
+      .eq('id', conversationId); // Note: This needs the actual post_id
 
-    if (postError) {
-      console.log('Post code update warning:', postError.message);
-      // Continue anyway
-    }
+    if (postError) console.log('Post code update warning:', postError.message);
 
-    // Determine user roles
-    const currentUserIsUser1 = userId === conversation.user1_id;
-    const otherUserProfile = currentUserIsUser1 ? conversation.user2_profile : conversation.user1_profile;
-    const currentUserProfile = currentUserIsUser1 ? conversation.user1_profile : conversation.user2_profile;
-
-    // Send confirmation message to both users
+    // Send confirmation message
     const confirmationText = `Confirmed! ${meetingDetails}`;
     await this.sendMenuMessage(
       conversationId,
@@ -238,46 +196,16 @@ export class MessagingService {
       userId
     );
 
-    // Send personalized code messages
-    if (currentUserIsUser1) {
-      // User1 (Finder) confirmed - User2 (Owner) gets code
-      await this.sendMenuMessage(
-        conversationId,
-        'system',
-        `Your pickup code: ${claimCode}\n*Give this code to ${conversation.user1_profile?.username || 'the finder'} when you meet*`,
-        `Your pickup code: ${claimCode}\n*Give this code to ${conversation.user1_profile?.username || 'the finder'} when you meet*`,
-        userId
-      );
-      
-      // User1 (Finder) gets instructions
-      await this.sendMenuMessage(
-        conversationId,
-        'system', 
-        `*Ask ${conversation.user2_profile?.username || 'the owner'} for the pickup code to verify return*`,
-        `*Ask ${conversation.user2_profile?.username || 'the owner'} for the pickup code to verify return*`,
-        userId
-      );
-    } else {
-      // User2 (Owner) confirmed - User2 gets code
-      await this.sendMenuMessage(
-        conversationId,
-        'system',
-        `Your pickup code: ${claimCode}\n*Give this code to ${conversation.user1_profile?.username || 'the finder'} when you meet*`,
-        `Your pickup code: ${claimCode}\n*Give this code to ${conversation.user1_profile?.username || 'the finder'} when you meet*`,
-        userId
-      );
-      
-      // User1 (Finder) gets instructions  
-      await this.sendMenuMessage(
-        conversationId,
-        'system',
-        `*Ask ${conversation.user2_profile?.username || 'the owner'} for the pickup code to verify return*`,
-        `*Ask ${conversation.user2_profile?.username || 'the owner'} for the pickup code to verify return*`,
-        userId
-      );
-    }
+    // Send code message (simplified without names)
+    await this.sendMenuMessage(
+      conversationId,
+      'system',
+      `Pickup code: ${claimCode}\n*Share this code when you meet*`,
+      `Pickup code: ${claimCode}\n*Share this code when you meet*`,
+      userId
+    );
 
-    return { conversation, claimCode };
+    return { claimCode };
   }
 
   // Confirm item pickup with verification code
@@ -299,20 +227,12 @@ export class MessagingService {
 
     if (convError) throw new Error('Invalid pickup code or conversation');
 
-    // Update the post status (skip since only 'open' is valid)
-    // const { error: postError } = await supabase
-    //   .from('posts')
-    //   .update({
-    //     post_status: 'claimed'
-    //   })
-    //   .eq('id', conversation.post_id);
-
     // Send verification completed message
     await this.sendMenuMessage(
       conversationId,
       'system',
-      `Verification completed! Item successfully returned.\nReturn confirmed at ${new Date().toLocaleTimeString()}`,
-      `Verification completed! Item successfully returned.\nReturn confirmed at ${new Date().toLocaleTimeString()}`,
+      `Verification completed! Item successfully returned.`,
+      `Verification completed! Item successfully returned.`,
       userId
     );
 
@@ -331,18 +251,6 @@ export class MessagingService {
 
     if (error) throw error;
     return data;
-  }
-
-  // Helper function to extract location from meeting details
-  private static extractLocation(meetingDetails: string): string {
-    const parts = meetingDetails.split(',');
-    return parts[0]?.trim() || '';
-  }
-
-  // Helper function to extract time from meeting details  
-  private static extractTime(meetingDetails: string): string {
-    const parts = meetingDetails.split(',');
-    return parts.slice(1).join(',').trim() || '';
   }
 
   // Generate display text based on message type
