@@ -37,7 +37,7 @@ export default function MessagingPage() {
     if (!user) return;
 
     try {
-      console.log('Starting test conversation creation...');
+      console.log('Starting test conversation creation for user:', user.id);
       
       const supabase = createClient();
       
@@ -55,7 +55,12 @@ export default function MessagingPage() {
         .single();
 
       if (convError) {
-        console.error('Conversation creation failed:', convError);
+        console.error('Conversation creation failed - full error:', {
+          message: convError.message,
+          details: convError.details,
+          hint: convError.hint,
+          code: convError.code
+        });
         throw convError;
       }
 
@@ -73,7 +78,12 @@ export default function MessagingPage() {
         });
 
       if (msgError) {
-        console.error('Message creation failed:', msgError);
+        console.error('Message creation failed - full error:', {
+          message: msgError.message,
+          details: msgError.details,
+          hint: msgError.hint,
+          code: msgError.code
+        });
         throw msgError;
       }
 
@@ -81,8 +91,14 @@ export default function MessagingPage() {
       setConversations(prev => [conversation, ...prev]);
       setSelectedConversation(conversation);
       
-    } catch (error) {
-      console.error('Full error details:', error);
+    } catch (error: any) {
+      console.error('Full error details:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        code: error?.code,
+        details: error?.details
+      });
     }
   };
 
