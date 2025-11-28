@@ -24,6 +24,7 @@ export interface Message {
   sender_id: string;
   is_read: boolean;
   created_at: string;
+  private?: boolean;
 }
 
 export interface PickupOption {
@@ -48,13 +49,12 @@ export class MessagingService {
           claimed_at: new Date().toISOString()
         })
         .eq('id', postId);
-
       if (postError) {
         console.error('❌ Post update error:', JSON.stringify(postError, null, 2));
         throw postError;
       }
       console.log('✅ Post updated successfully');
-
+      
       // Create conversation
       const { data: conversation, error: convError } = await supabase
         .from('conversations')
@@ -66,13 +66,12 @@ export class MessagingService {
         })
         .select()
         .single();
-
       if (convError) {
         console.error('❌ Conversation creation error:', JSON.stringify(convError, null, 2));
         throw convError;
       }
       console.log('✅ Conversation created:', conversation.id);
-
+      
       // Send initial claim message using actual table schema
       const { data: message, error: msgError } = await supabase
         .from('messages')
@@ -86,13 +85,11 @@ export class MessagingService {
         })
         .select()
         .single();
-
       if (msgError) {
         console.error('❌ Message creation error:', JSON.stringify(msgError, null, 2));
         throw msgError;
       }
       console.log('✅ Initial message sent:', message.id);
-
       return { conversation, message };
     } catch (error) {
       console.error('❌ Error in claimItem:', JSON.stringify(error, null, 2));
@@ -108,22 +105,24 @@ export class MessagingService {
       .select('*')
       .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
       .order('updated_at', { ascending: false });
-
     if (error) throw error;
     return data;
   }
 
   // Get messages for a conversation
-  static async getConversationMessages(conversationId: string) {
+  static async getConversationMessages(conversationId: string, userId: string) {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
-
     if (error) throw error;
-    return data;
+    
+    // Filter out private messages that don't belong to current user
+    return data.filter(message => 
+      !message.private || (message.private && message.sender_id === userId)
+    );
   }
 
   // Send a menu-based message
@@ -149,12 +148,10 @@ export class MessagingService {
       console.error('No authenticated user found');
       throw new Error('Not authenticated');
     }
-
     console.log('Sending message:', { conversationId, messageType, content, displayText, userId: currentUser.id });
     
     // Generate display text if not provided
     const finalDisplayText = displayText || this.generateDisplayText(messageType, content);
-
     try {
       const { data: message, error } = await supabase
         .from('messages')
@@ -168,7 +165,6 @@ export class MessagingService {
         })
         .select()
         .single();
-
       if (error) {
         console.error('Error inserting message:', error);
         throw error;
@@ -180,7 +176,6 @@ export class MessagingService {
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', conversationId);
-
       return message;
     } catch (error) {
       console.error('Error in sendMenuMessage:', error);
@@ -188,33 +183,70 @@ export class MessagingService {
     }
   }
 
-  // Confirm meeting and generate pickup code
+  // Confirm meeting and use existing claim code from posts
   static async confirmMeeting(conversationId: string, meetingDetails: string, userId: string) {
     const supabase = createClient();
+    
+    console.log('🔍 Getting existing claim code from post...');
+    
+    // First get the conversation to find the post_id
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('post_id')
+      .eq('id', conversationId)
+      .single();
+    
+    if (convError || !conversation) {
+      console.error('❌ Error fetching conversation:', convError);
+      throw new Error('Could not find conversation');
+    }
+    
+    // Then get the claim_code from the posts table
+    const { data: post, error: postError } = await supabase
+      .from('posts')
+      .select('claim_code')
+      .eq('id', conversation.post_id)
+      .single();
+    
+    if (postError || !post) {
+      console.error('❌ Error fetching post:', postError);
+      throw new Error('Could not find post');
+    }
+    
+    if (!post.claim_code) {
+      console.error('❌ No claim code found in post:', post);
+      throw new Error('Post does not have a claim code');
+    }
+    
+    // Use the existing claim code from the post
+    const claimCode = post.claim_code;
+    console.log('✅ Using existing claim code:', claimCode);
     
     // Parse meeting details (format: "Location, Time Slot")
     const [location, timeSlot] = meetingDetails.split(',').map(s => s.trim());
     
-    // Generate pickup code
-    const claimCode = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log('Confirming meeting:', { conversationId, location, timeSlot, claimCode });
-
-    // Update conversation with code and meeting details
-    const { error: updateError } = await supabase
+    console.log('🔄 Updating conversation with claim code...');
+    
+    // Update conversation with code and meeting details - with better error handling
+    const { data: updatedConversation, error: updateError } = await supabase
       .from('conversations')
       .update({
         arranged_location: location,
         arranged_time: timeSlot,
-        claim_code: claimCode,
+        claim_code: claimCode, // Use existing code from post
         updated_at: new Date().toISOString()
       })
-      .eq('id', conversationId);
-
+      .eq('id', conversationId)
+      .select()
+      .single();
+      
     if (updateError) {
-      console.error('Error updating conversation:', updateError);
+      console.error('❌ Error updating conversation:', updateError);
       throw updateError;
     }
-
+    
+    console.log('✅ Conversation updated with claim code:', updatedConversation.claim_code);
+    
     // Send confirmation message
     const confirmationText = `✅ Meeting Confirmed!\n📍 ${location}\n🕒 ${timeSlot}`;
     await this.sendMenuMessage(
@@ -224,20 +256,20 @@ export class MessagingService {
       confirmationText,
       userId
     );
-
+    
     // Get conversation to determine users
-    const { data: conversation } = await supabase
+    const { data: finalConversation } = await supabase
       .from('conversations')
       .select('*')
       .eq('id', conversationId)
       .single();
-
-    if (conversation) {
+    
+    if (finalConversation) {
       try {
         // Send pickup code to the claimant (user who claimed the item)
-        const claimantId = conversation.user2_id;
-        const finderId = conversation.user1_id;
-
+        const claimantId = finalConversation.user2_id;
+        const finderId = finalConversation.user1_id;
+        
         // Send pickup code message to CLAIMANT (private system message)
         const codeMessage = `🔐 Your Pickup Code: ${claimCode}\n\nGive this 6-digit code to the finder when you meet to verify the return.`;
         await supabase
@@ -251,7 +283,7 @@ export class MessagingService {
             is_read: false,
             private: true // Mark as private so only claimant sees it
           });
-
+        
         // Send instruction message to FINDER (private system message)
         const instructionMessage = `🔐 Please ask the claimant for the pickup code when you meet and enter it in the app to confirm the return.`;
         await supabase
@@ -265,13 +297,15 @@ export class MessagingService {
             is_read: false,
             private: true // Mark as private so only finder sees it
           });
+          
+        console.log('✅ Private system messages sent');
       } catch (systemMessageError) {
         console.error('Error sending system messages:', systemMessageError);
         // Don't throw here - the main confirmation was successful
         // Just log the error but continue
       }
     }
-
+    
     return { claimCode };
   }
 
@@ -303,7 +337,7 @@ export class MessagingService {
     
     console.log('📋 Stored claim_code:', conversation.claim_code);
     
-    // Clean both codes for comparison
+    // Clean both codes for comparison (remove any non-digits)
     const cleanEnteredCode = enteredCode.replace(/\D/g, '').trim();
     const cleanStoredCode = conversation.claim_code ? 
       conversation.claim_code.toString().replace(/\D/g, '').trim() : '';
@@ -362,7 +396,6 @@ export class MessagingService {
       .eq('option_type', optionType)
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
-
     if (error) throw error;
     return data;
   }
@@ -377,7 +410,6 @@ export class MessagingService {
       'system': content || '📢 System message',
       'share_email': content || '📧 Shared email address'
     };
-
     return templates[messageType] || content || '💬 Message';
   }
 
@@ -389,12 +421,10 @@ export class MessagingService {
       .select('email')
       .eq('id', userId)
       .single();
-
     if (error) {
       console.error('Error getting user email:', error);
       throw new Error('Could not retrieve user email');
     }
-
     return data.email;
   }
 
@@ -425,12 +455,10 @@ export class MessagingService {
       .select('user1_id, user2_id')
       .eq('id', conversationId)
       .single();
-
     if (error) {
       console.error('Error getting conversation:', error);
       return null;
     }
-
     return conversation.user1_id === currentUserId ? conversation.user2_id : conversation.user1_id;
   }
 
@@ -443,7 +471,6 @@ export class MessagingService {
       .eq('conversation_id', conversationId)
       .neq('sender_id', userId)
       .eq('is_read', false);
-
     if (error) {
       console.error('Error marking messages as read:', error);
     }
@@ -456,7 +483,6 @@ export class MessagingService {
     // Get user's conversations
     const conversations = await this.getUserConversations(userId);
     if (conversations.length === 0) return 0;
-
     const conversationIds = conversations.map(conv => conv.id);
     
     // Count unread messages
@@ -466,12 +492,10 @@ export class MessagingService {
       .in('conversation_id', conversationIds)
       .neq('sender_id', userId)
       .eq('is_read', false);
-
     if (error) {
       console.error('Error getting unread count:', error);
       return 0;
     }
-
     return data?.length || 0;
   }
 
@@ -500,12 +524,10 @@ export class MessagingService {
       .select('*')
       .eq('id', conversationId)
       .single();
-
     if (error) {
       console.error('Error getting conversation:', error);
       throw error;
     }
-
     return data;
   }
 
@@ -517,12 +539,10 @@ export class MessagingService {
       .select('user1_id, user2_id')
       .eq('id', conversationId)
       .single();
-
     if (error) {
       console.error('Error checking conversation membership:', error);
       return false;
     }
-
     return data.user1_id === userId || data.user2_id === userId;
   }
 
@@ -539,12 +559,10 @@ export class MessagingService {
       `)
       .eq('id', conversationId)
       .single();
-
     if (error) {
       console.error('Error getting conversation participants:', error);
       throw error;
     }
-
     return {
       user1: conversation.profiles1,
       user2: conversation.profiles2
@@ -577,7 +595,6 @@ export class MessagingService {
         updated_at: new Date().toISOString()
       })
       .eq('id', conversationId);
-
     if (error) {
       console.error('Error updating conversation status:', error);
       throw error;
@@ -603,17 +620,14 @@ export class MessagingService {
       .select('claim_code, user2_id')
       .eq('id', conversationId)
       .single();
-
     if (error) {
       console.error('Error getting pickup code:', error);
       return null;
     }
-
     // Only return the code if the current user is the claimant
     if (conversation.user2_id === userId) {
       return conversation.claim_code;
     }
-
     return null;
   }
 
