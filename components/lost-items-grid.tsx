@@ -438,36 +438,38 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center justify-between w-full text-sm text-muted-foreground">
                 <p>Did you find this post helpful?</p>
-                <Button
-                  variant={myVotesByPostId[post.id] === true ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => handleVote(post, true)}
-                  disabled={
-                    !myUserId ||
-                    post.user_id === myUserId ||
-                    !!voteBusyByPostId[post.id]
-                  }
-                  className="gap-1"
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                  Yes
-                </Button>
-                <Button
-                  variant={myVotesByPostId[post.id] === false ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => handleVote(post, false)}
-                  disabled={
-                    !myUserId ||
-                    post.user_id === myUserId ||
-                    !!voteBusyByPostId[post.id]
-                  }
-                  className="gap-1"
-                >
-                  <ThumbsDown className="h-4 w-4" />
-                  No
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={myVotesByPostId[post.id] === true ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => handleVote(post, true)}
+                    disabled={
+                      !myUserId ||
+                      post.user_id === myUserId ||
+                      !!voteBusyByPostId[post.id]
+                    }
+                    className="gap-1"
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                    Yes
+                  </Button>
+                  <Button
+                    variant={myVotesByPostId[post.id] === false ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => handleVote(post, false)}
+                    disabled={
+                      !myUserId ||
+                      post.user_id === myUserId ||
+                      !!voteBusyByPostId[post.id]
+                    }
+                    className="gap-1"
+                  >
+                    <ThumbsDown className="h-4 w-4" />
+                    No
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

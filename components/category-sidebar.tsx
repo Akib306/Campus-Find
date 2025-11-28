@@ -1,15 +1,23 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
+import { Laptop, Pencil, Book, Shirt, LayoutGrid } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const CATEGORIES = [
-  { value: "electronic", label: "Electronic", color: "bg-blue-500" },
-  { value: "stationery", label: "Stationery", color: "bg-green-500" },
-  { value: "book", label: "Book", color: "bg-purple-500" },
-  { value: "clothing", label: "Clothing", color: "bg-pink-500" },
+type CategoryItem = {
+  value: "electronic" | "stationery" | "book" | "clothing";
+  label: string;
+  icon: LucideIcon;
+  iconColor: string; // text- color class
+};
+
+const CATEGORIES: readonly CategoryItem[] = [
+  { value: "electronic", label: "Electronic", icon: Laptop, iconColor: "text-blue-500" },
+  { value: "stationery", label: "Stationery", icon: Pencil, iconColor: "text-green-500" },
+  { value: "book", label: "Book", icon: Book, iconColor: "text-purple-500" },
+  { value: "clothing", label: "Clothing", icon: Shirt, iconColor: "text-pink-500" },
 ] as const;
 
 interface CategorySidebarProps {
@@ -28,48 +36,46 @@ export function CategorySidebar({
       <div className="sticky top-8 space-y-4">
         <div>
           <h2 className="text-lg font-semibold mb-4">Categories</h2>
-          <div className="space-y-2">
-            <Button
-              variant={selectedCategory === null ? "default" : "outline"}
-              className={cn(
-                "w-full justify-start",
-                selectedCategory === null &&
-                  "bg-primary text-primary-foreground"
-              )}
-              onClick={() => onCategoryChange(null)}
-            >
-              All Items
-              {categoryCounts.all !== undefined && (
-                <Badge variant="secondary" className="ml-auto">
-                  {categoryCounts.all}
-                </Badge>
-              )}
-            </Button>
-            {CATEGORIES.map((category) => (
-              <Button
-                key={category.value}
-                variant={
-                  selectedCategory === category.value ? "default" : "outline"
-                }
-                className={cn(
-                  "w-full justify-start",
-                  selectedCategory === category.value &&
-                    "bg-primary text-primary-foreground"
-                )}
-                onClick={() => onCategoryChange(category.value)}
-              >
-                <div
-                  className={cn("w-3 h-3 rounded-full mr-2", category.color)}
-                />
-                {category.label}
-                {categoryCounts[category.value] !== undefined && (
-                  <Badge variant="secondary" className="ml-auto">
-                    {categoryCounts[category.value]}
-                  </Badge>
-                )}
-              </Button>
-            ))}
-          </div>
+          <TooltipProvider delayDuration={100}>
+            <div className="flex flex-wrap gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={selectedCategory === null ? "default" : "outline"}
+                    size="icon"
+                    className={cn(selectedCategory === null && "bg-primary text-primary-foreground")}
+                    onClick={() => onCategoryChange(null)}
+                    aria-label={`All Items (${categoryCounts.all ?? 0})`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  All Items ({categoryCounts.all ?? 0})
+                </TooltipContent>
+              </Tooltip>
+              {CATEGORIES.map((category) => (
+                <Tooltip key={category.value}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={
+                        selectedCategory === category.value ? "default" : "outline"
+                      }
+                      size="icon"
+                      className={cn(selectedCategory === category.value && "bg-primary text-primary-foreground")}
+                      onClick={() => onCategoryChange(category.value)}
+                      aria-label={`${category.label} (${categoryCounts[category.value] ?? 0})`}
+                    >
+                      <category.icon className={cn("w-4 h-4", category.iconColor)} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {category.label} ({categoryCounts[category.value] ?? 0})
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </TooltipProvider>
         </div>
       </div>
     </div>
