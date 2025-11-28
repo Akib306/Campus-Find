@@ -33,9 +33,9 @@ export function CategorySidebar({
 }: CategorySidebarProps) {
   return (
     <div className="w-full md:w-64 flex-shrink-0">
-      <div className="sticky top-8 space-y-4">
+      <div className="sticky">
         <div>
-          <h2 className="text-lg font-semibold mb-4">Categories</h2>
+          <h2 className="text-lg font-semibold mb-2">Categories</h2>
           <TooltipProvider delayDuration={100}>
             <div className="flex flex-wrap gap-2">
               <Tooltip>
@@ -50,8 +50,8 @@ export function CategorySidebar({
                     <LayoutGrid className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  All Items ({categoryCounts.all ?? 0})
+                <TooltipContent side="bottom">
+                  All Posts ({categoryCounts.all ?? 0})
                 </TooltipContent>
               </Tooltip>
               {CATEGORIES.map((category) => (
@@ -69,8 +69,8 @@ export function CategorySidebar({
                       <category.icon className={cn("w-4 h-4", category.iconColor)} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    {category.label} ({categoryCounts[category.value] ?? 0})
+                  <TooltipContent side="bottom">
+                    {category.label} ({categoryCounts[category.value] ?? 0} Posts)
                   </TooltipContent>
                 </Tooltip>
               ))}
