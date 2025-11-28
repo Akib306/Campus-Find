@@ -23,6 +23,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   const [selectedTime, setSelectedTime] = useState<PickupOption | null>(null);
   const [currentState, setCurrentState] = useState<'initial' | 'waiting_confirmation' | 'suggesting_alternative' | 'confirmed' | 'completed'>('initial');
   const [claimantPickupCode, setClaimantPickupCode] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Check if current user is the finder (user who posted the item)
@@ -65,6 +66,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
               return updated;
             });
           }
+
           // Refresh the page to update conversation list and other states
           setTimeout(() => {
             router.refresh();
@@ -123,10 +125,12 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   };
 
   const loadClaimantPickupCode = async () => {
+    // Only load claimant's private pickup code for claimant role and when meeting is confirmed
     if (isClaimant && currentState === 'confirmed') {
       try {
         const code = await MessagingService.getClaimantPickupCode(conversation.id, currentUser.id);
-        setClaimantPickupCode(code);
+        // Normalize display: keep raw string if present
+        setClaimantPickupCode(code ? code.trim() : null);
       } catch (error) {
         console.error('Error loading pickup code:', error);
       }
@@ -136,7 +140,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   const loadMessages = async () => {
     try {
       console.log('📥 Loading messages for conversation:', conversation.id);
-      const conversationMessages = await MessagingService.getConversationMessages(conversation.id);
+      const conversationMessages = await MessagingService.getConversationMessages(conversation.id, currentUser.id);
       console.log('📨 Messages loaded:', conversationMessages);
       setMessages(conversationMessages);
     } catch (error) {
@@ -240,58 +244,80 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     }
   };
 
+  /**
+   * Updated pickup confirmation handler
+   * - Performs a robust client-side normalization & pre-check against stored claim_code to avoid
+   *   string formatting mismatches (whitespace, non-digit characters, casing).
+   * - If pre-check passes, calls backend confirmPickup as before.
+   * - On wrong code: modal stays open, input cleared, error shown at top (non-blocking).
+   * - On success: proceeds with existing flow (close modal, update state, refresh).
+   */
   const handleConfirmPickup = async () => {
     try {
-      // Clean the input before sending
+      // Clean the input before sending: remove non-digits and trim
       const cleanCode = pickupCode.replace(/\D/g, '').trim();
-      
+
       if (cleanCode.length !== 6) {
-        alert('Please enter a valid 6-digit code');
+        setErrorMessage('Please enter a valid 6-digit code');
         return;
       }
-      
-      console.log('🔐 Attempting pickup confirmation with code:', cleanCode);
-      
+
+      console.log('🔐 Attempting pickup confirmation with code (clean):', cleanCode);
+
+      // -------------------------
+      // CLIENT-SIDE PRE-CHECK (robust normalization)
+      // -------------------------
+      // Fetch the conversation record to read stored code (trusted single source)
+      let storedClaimCode: string | null = null;
+      try {
+        const conv = await MessagingService.getConversationById(conversation.id);
+        storedClaimCode = conv?.claim_code ?? null;
+      } catch (fetchConvErr) {
+        console.error('Error fetching conversation for pre-check:', fetchConvErr);
+        // If we couldn't fetch conversation, still attempt server-side confirm for final authority
+      }
+
+      // Normalize both values by removing non-digit characters and trimming
+      const normalize = (s?: string | null) => (s ? s.replace(/\D/g, '').trim() : '');
+      const storedNormalized = normalize(storedClaimCode);
+      const enteredNormalized = normalize(cleanCode);
+
+      console.log('Pre-check codes:', { enteredNormalized, storedNormalized });
+
+      // If we could read stored code and it doesn't match, show immediate error and allow retry
+      if (storedClaimCode && storedNormalized !== enteredNormalized) {
+        setErrorMessage('Incorrect pickup code. Please ask the claimant for the correct code and try again.');
+        setPickupCode(''); // clear input for retry
+        return; // keep modal open so finder can retry
+      }
+
+      // If pre-check passed (or we couldn't fetch stored code), proceed to server verification
       await MessagingService.confirmPickup(conversation.id, cleanCode, currentUser.id);
+
+      // On success: close modal, clear inputs and error, update states
       setShowPickupConfirm(false);
       setPickupCode('');
-      setCurrentState('completed');
+      setErrorMessage(null);
+      setCurrentState('completed'); // mark local state completed (server also updated)
       await loadMessages();
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error confirming pickup:', error);
+
+      // Keep modal open on failure and provide a helpful message
+      const messageText = (error && error.message) ? error.message : String(error);
       
-      // More specific error message
-      if (error.message.includes('Invalid pickup code')) {
-        alert('The pickup code you entered is incorrect. Please ask the claimant for the correct code.');
+      if (messageText.toLowerCase().includes('invalid pickup code') || messageText.toLowerCase().includes('incorrect')) {
+        setErrorMessage('Incorrect pickup code. Please ask the claimant for the correct code and try again.');
       } else {
-        alert('Error confirming pickup. Please try again.');
+        setErrorMessage('Error confirming pickup. Please try again.');
       }
+
+      // Clear the input so user can easily retry
+      setPickupCode('');
+      // Do NOT close modal so user can retry immediately
     }
   };
-
-  // Temporary debug method - call this when the chat loads
-  const debugPickupCode = async () => {
-    if (currentState === 'confirmed') {
-      const debugData = await MessagingService.debugConversation(conversation.id);
-      console.log('🔍 CURRENT PICKUP CODE DEBUG:', {
-        conversationId: conversation.id,
-        storedCode: debugData?.claim_code,
-        claimantId: conversation.user2_id,
-        finderId: conversation.user1_id,
-        currentUserId: currentUser.id,
-        isClaimant: isClaimant
-      });
-      
-      if (isClaimant && claimantPickupCode) {
-        console.log('📱 CLAIMANT SEES CODE:', claimantPickupCode);
-      }
-    }
-  };
-
-  useEffect(() => {
-    debugPickupCode();
-  }, [currentState, claimantPickupCode]);
 
   const getActionButtons = () => {
     switch (currentState) {
@@ -312,6 +338,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
             </button>
           </div>
         );
+
       case 'waiting_confirmation':
         return (
           <div className="text-center">
@@ -326,6 +353,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
             </button>
           </div>
         );
+
       case 'suggesting_alternative':
         return (
           <div className="flex gap-2">
@@ -349,6 +377,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
             </button>
           </div>
         );
+
       case 'confirmed':
         return (
           <div className="space-y-3">
@@ -371,7 +400,11 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
                   Ask the claimant for the pickup code and enter it below
                 </div>
                 <button
-                  onClick={() => setShowPickupConfirm(true)}
+                  onClick={() => {
+                    setShowPickupConfirm(true);
+                    setErrorMessage(null); // reset error every time the modal opens
+                    setPickupCode('');
+                  }}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   Enter Pickup Code
@@ -389,6 +422,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
             </div>
           </div>
         );
+
       case 'completed':
         return (
           <div className="text-center">
@@ -397,6 +431,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
             </div>
           </div>
         );
+
       default:
         return null;
     }
@@ -450,6 +485,21 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
 
   return (
     <div className="flex flex-col h-96 border border-gray-300 rounded-lg bg-white">
+      {/* Error Notification */}
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <div className="flex justify-between items-center">
+            <span className="block sm:inline">{errorMessage}</span>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="text-red-700 hover:text-red-900"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Chat Header */}
       <div className="p-4 border-b border-gray-300 bg-gray-50">
         <h3 className="font-semibold text-gray-900">
@@ -540,12 +590,16 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
               <button
                 onClick={handleConfirmPickup}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                disabled={pickupCode.length !== 6}
+                disabled={pickupCode.replace(/\D/g, '').trim().length !== 6}
               >
                 Confirm Return
               </button>
               <button
-                onClick={() => setShowPickupConfirm(false)}
+                onClick={() => {
+                  setShowPickupConfirm(false);
+                  setPickupCode('');
+                  setErrorMessage(null); // Clear error when closing modal
+                }}
                 className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
               >
                 Cancel
@@ -557,3 +611,4 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     </div>
   );
 }
+

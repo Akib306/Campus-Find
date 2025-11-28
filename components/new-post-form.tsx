@@ -31,6 +31,11 @@ import { toast } from "sonner";
 const defaultImageSrc = "./project-screenshot.png";
 const MAX_IMAGES = 5;
 
+// Helper function to generate claim code
+function generateClaimCode() {
+  return Math.floor(100000 + Math.random() * 900000); // 6-digit random code
+}
+
 export function NewPostForm() {
   const [itemName, setItemName] = useState("");
   const [description, setDescription] = useState("");
@@ -102,6 +107,7 @@ export function NewPostForm() {
         setIsLoading(false);
         return;
       }
+
       // Get current user
       const {
         data: { user },
@@ -110,7 +116,10 @@ export function NewPostForm() {
         throw new Error("You must be logged in to post items");
       }
 
-      // Step 1: Create the post first (without images) to get a post ID
+      // Step 1: Generate claim code
+      const claimCode = generateClaimCode();
+
+      // Step 2: Create the post first (without images) to get a post ID
       const { data: insertedPost, error: insertError } = await supabase
         .from("posts")
         .insert([
@@ -122,9 +131,10 @@ export function NewPostForm() {
             location_name: locationName,
             image_path: [],
             post_status: "open",
+            claim_code: claimCode, // Add claim code here
           },
         ])
-        .select("id")
+        .select("id, claim_code")
         .single();
 
       if (insertError || !insertedPost) {
@@ -133,7 +143,7 @@ export function NewPostForm() {
 
       const postId = insertedPost.id as string;
 
-      // Step 2: Upload all selected images (if any) to storage under {postId}/
+      // Step 3: Upload all selected images (if any) to storage under {postId}/
       const uploadedPaths: string[] = [];
       if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
@@ -166,13 +176,13 @@ export function NewPostForm() {
         }
       }
 
-      // Step 3: Resolve public URLs for all uploaded images
+      // Step 4: Resolve public URLs for all uploaded images
       const publicUrls: string[] = uploadedPaths.map((p) => {
         const { data } = supabase.storage.from("post-images").getPublicUrl(p);
         return data.publicUrl;
       });
 
-      // Step 4: Update the post with the image URL array
+      // Step 5: Update the post with the image URL array
       const { error: updateError } = await supabase
         .from("posts")
         .update({ image_path: publicUrls })
