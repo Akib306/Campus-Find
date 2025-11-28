@@ -185,7 +185,8 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       if (lastSuggestionFromOther && lastSuggestionFromOther.content) {
         console.log('Confirming meeting with details:', lastSuggestionFromOther.content);
         
-        const { claimCode } = await MessagingService.confirmMeeting(
+        // Use the simple confirm method to avoid system message errors
+        const { claimCode } = await MessagingService.confirmMeetingSimple(
           conversation.id,
           lastSuggestionFromOther.content,
           currentUser.id
