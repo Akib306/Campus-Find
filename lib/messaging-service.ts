@@ -37,10 +37,9 @@ export class MessagingService {
   // Claim an item and start conversation
   static async claimItem(postId: string, claimantId: string, itemOwnerId: string) {
     const supabase = createClient();
-
     try {
       console.log('🔄 Starting claim process...', { postId, claimantId, itemOwnerId });
-
+      
       // Update posts table
       const { error: postError } = await supabase
         .from('posts')
@@ -54,7 +53,6 @@ export class MessagingService {
         console.error('❌ Post update error:', JSON.stringify(postError, null, 2));
         throw postError;
       }
-
       console.log('✅ Post updated successfully');
 
       // Create conversation
@@ -73,22 +71,18 @@ export class MessagingService {
         console.error('❌ Conversation creation error:', JSON.stringify(convError, null, 2));
         throw convError;
       }
-
       console.log('✅ Conversation created:', conversation.id);
 
-      // Send initial claim message using original messages table
+      // Send initial claim message using actual table schema
       const { data: message, error: msgError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
           message_type: 'claim_initial',
-          topic: 'item_claim',
           content: 'Hello, I believe this is my lost item',
-          extension: 'text',
           display_text: 'Hello, I believe this is my lost item',
           sender_id: claimantId,
-          is_read: false,
-          private: false
+          is_read: false
         })
         .select()
         .single();
@@ -97,7 +91,6 @@ export class MessagingService {
         console.error('❌ Message creation error:', JSON.stringify(msgError, null, 2));
         throw msgError;
       }
-
       console.log('✅ Initial message sent:', message.id);
 
       return { conversation, message };
@@ -115,7 +108,6 @@ export class MessagingService {
       .select('*')
       .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
       .order('updated_at', { ascending: false });
-
     if (error) throw error;
     return data;
   }
@@ -128,7 +120,6 @@ export class MessagingService {
       .select('*')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
-
     if (error) throw error;
     return data;
   }
@@ -158,7 +149,7 @@ export class MessagingService {
     }
 
     console.log('Sending message:', { conversationId, messageType, content, displayText, userId: currentUser.id });
-
+    
     // Generate display text if not provided
     const finalDisplayText = displayText || this.generateDisplayText(messageType, content);
 
@@ -168,13 +159,10 @@ export class MessagingService {
         .insert({
           conversation_id: conversationId,
           message_type: messageType,
-          topic: messageType,
           content: content,
-          extension: 'text',
           display_text: finalDisplayText,
           sender_id: currentUser.id,
-          is_read: false,
-          private: false
+          is_read: false
         })
         .select()
         .single();
@@ -185,7 +173,7 @@ export class MessagingService {
       }
 
       console.log('Message sent successfully:', message);
-
+      
       // Update conversation timestamp
       await supabase
         .from('conversations')
@@ -202,13 +190,12 @@ export class MessagingService {
   // Confirm meeting and generate pickup code
   static async confirmMeeting(conversationId: string, meetingDetails: string, userId: string) {
     const supabase = createClient();
-
+    
     // Parse meeting details (format: "Location, Time Slot")
     const [location, timeSlot] = meetingDetails.split(',').map(s => s.trim());
     
     // Generate pickup code
     const claimCode = Math.floor(100000 + Math.random() * 900000).toString();
-
     console.log('Confirming meeting:', { conversationId, location, timeSlot, claimCode });
 
     // Update conversation with code and meeting details
@@ -228,7 +215,7 @@ export class MessagingService {
     }
 
     // Send confirmation message
-    const confirmationText = `Confirmed! ${meetingDetails}`;
+    const confirmationText = `✅ Confirmed! ${meetingDetails}`;
     await this.sendMenuMessage(
       conversationId,
       'confirmation',
@@ -237,15 +224,40 @@ export class MessagingService {
       userId
     );
 
-    // Send system message with pickup code to both users
-    const systemMessage = `Pickup arranged!\nLocation: ${location}\nTime: ${timeSlot}\n\nYour pickup code will be shown when you confirm the meeting.`;
-    await this.sendMenuMessage(
-      conversationId,
-      'suggestion',
-      systemMessage,
-      systemMessage,
-      userId
-    );
+    // Get conversation to determine users
+    const { data: conversation } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', conversationId)
+      .single();
+
+    if (conversation) {
+      // Send pickup code to the claimant (user who should have the code)
+      const claimantId = conversation.user2_id; // The one who claimed the item
+      if (userId === claimantId) {
+        const codeMessage = `Your pickup code: ${claimCode}\n\nGive this code to the other person when you meet to verify the return.`;
+        await this.sendMenuMessage(
+          conversationId,
+          'system',
+          codeMessage,
+          codeMessage,
+          userId
+        );
+      }
+
+      // Send instruction to the item owner (user who should ask for the code)
+      const ownerId = conversation.user1_id; // The one who posted the item
+      if (userId === ownerId) {
+        const instructionMessage = `Ask for the pickup code when you meet to verify the item return.`;
+        await this.sendMenuMessage(
+          conversationId,
+          'system',
+          instructionMessage,
+          instructionMessage,
+          userId
+        );
+      }
+    }
 
     return { claimCode };
   }
@@ -253,7 +265,7 @@ export class MessagingService {
   // Confirm item pickup with verification code
   static async confirmPickup(conversationId: string, claimCode: string, userId: string) {
     const supabase = createClient();
-
+    
     // Verify the claim code and update conversation
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
@@ -272,11 +284,11 @@ export class MessagingService {
 
     // Send verification completed message
     const completionTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const completionText = `Verification completed! Item successfully returned. Return confirmed at ${completionTime}`;
+    const completionText = `✅ Verification completed! Item successfully returned.\nReturn confirmed at ${completionTime}`;
     
     await this.sendMenuMessage(
       conversationId,
-      'confirmation',
+      'system',
       completionText,
       completionText,
       userId
@@ -294,7 +306,6 @@ export class MessagingService {
       .eq('option_type', optionType)
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
-
     if (error) throw error;
     return data;
   }
@@ -302,12 +313,70 @@ export class MessagingService {
   // Generate display text based on message type
   private static generateDisplayText(messageType: string, content?: string): string {
     const templates: Record<string, string> = {
-      'claim_initial': 'Hello, I believe this is my lost item',
-      'suggestion': `Suggested: ${content}`,
-      'confirmation': `Confirmed: ${content}`,
-      'share_contact': 'Shared contact information'
+      'claim_initial': '👋 Hello, I believe this is my lost item',
+      'suggestion': `📍 Suggested: ${content}`,
+      'confirmation': `✅ Confirmed: ${content}`,
+      'share_contact': '📞 Shared contact information',
+      'system': content || '📢 System message'
     };
+    return templates[messageType] || content || '💬 Message';
+  }
 
-    return templates[messageType] || content || 'Message';
+  // Get other user ID in conversation
+  static async getOtherUserId(conversationId: string, currentUserId: string): Promise<string | null> {
+    const supabase = createClient();
+    const { data: conversation, error } = await supabase
+      .from('conversations')
+      .select('user1_id, user2_id')
+      .eq('id', conversationId)
+      .single();
+
+    if (error) {
+      console.error('Error getting conversation:', error);
+      return null;
+    }
+
+    return conversation.user1_id === currentUserId ? conversation.user2_id : conversation.user1_id;
+  }
+
+  // Mark messages as read
+  static async markMessagesAsRead(conversationId: string, userId: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .eq('conversation_id', conversationId)
+      .neq('sender_id', userId)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  }
+
+  // Get unread message count for user
+  static async getUnreadMessageCount(userId: string): Promise<number> {
+    const supabase = createClient();
+    
+    // Get user's conversations
+    const conversations = await this.getUserConversations(userId);
+    if (conversations.length === 0) return 0;
+
+    const conversationIds = conversations.map(conv => conv.id);
+    
+    // Count unread messages
+    const { data, error } = await supabase
+      .from('messages')
+      .select('id', { count: 'exact' })
+      .in('conversation_id', conversationIds)
+      .neq('sender_id', userId)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('Error getting unread count:', error);
+      return 0;
+    }
+
+    return data?.length || 0;
   }
 }
