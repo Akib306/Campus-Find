@@ -283,26 +283,27 @@ export function LostItemsGrid() {
   }
 
   const getCategoryColor = (category: string) => {
-    switch (category) {
+    const normalized = category.toLowerCase();
+    switch (normalized) {
       case "electronic":
-        return "bg-blue-500";
+        return "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20";
       case "stationery":
-        return "bg-green-500";
+        return "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20";
       case "book":
-        return "bg-purple-500";
+        return "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20";
       case "clothing":
-        return "bg-pink-500";
+        return "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20";
       default:
-        return "bg-gray-500";
+        return "bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/20";
     }
   };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
       {posts.map((post) => (
-        <Card key={post.id} className="h-full hover:shadow-lg transition-shadow">
+        <Card key={post.id} className="h-full hover:shadow-lg transition-shadow gap-2">
             <CardHeader>
-              <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
+              <div className="relative w-full h-48 mb-2 rounded-lg overflow-hidden bg-muted">
                 {post.image_path && post.image_path.length > 0 ? (
                   <Image
                     src={post.image_path[0]}
@@ -318,25 +319,26 @@ export function LostItemsGrid() {
                 )}
               </div>
               <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-lg line-clamp-2">
+                <CardTitle className="text-xl md:text-2xl">
                   {post.item_name} 
                 </CardTitle>
                 <Badge
+                  variant="outline"
                   className={`${getCategoryColor(
                     post.item_category
-                  )} text-white capitalize`}
+                  )} capitalize`}
                 >
                   {post.item_category}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent>
-              <CardDescription className="line-clamp-2 mb-2 text-base">
+              <CardDescription className="leading-relaxed mb-2">
                 {post.description || "No description"}
               </CardDescription>
               {post.location_name && (
-                <div className="flex flex-col text-sm text-muted-foreground mb-2">
-                  <span className="flex items-center gap-1 text-sm">
+                <div className="flex items-center text-sm text-muted-foreground mb-2">
+                  <span className="flex items-center gap-1">
                     <MapPin size={14} /> {post.location_name}
                   </span>
                 </div>
@@ -347,16 +349,16 @@ export function LostItemsGrid() {
                 })}
               </p>
 
-              <hr className="my-2 border-accent" />
+              <hr className="my-2 border-border" />
 
               <div className="flex items-center gap-2 border-border">
-                <Avatar>
+                <Avatar className="size-6">
                   {post.posting_user?.avatar_url && (
                     <AvatarImage src={post.posting_user?.avatar_url} alt={post.posting_user?.email} />
                   )}
                   <AvatarFallback className="bg-accent">{post.posting_user?.email ? post.posting_user?.email.charAt(0).toUpperCase() : "?"}</AvatarFallback>
                 </Avatar>
-                <p className="text-base text-muted-foreground">{post.posting_user?.username}</p>
+                <p className="text-sm font-medium text-foreground">{post.posting_user?.username}</p>
                 <p className="ml-auto text-xs text-muted-foreground">
                   Helped {userReliabilityByUserId.get(post.user_id)?.helpful_posts ?? 0} people
                 </p>
