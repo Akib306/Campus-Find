@@ -13,8 +13,8 @@ export interface Conversation {
   picked_up_at?: string;
   created_at: string;
   updated_at: string;
-  user1_profile?: any;
-  user2_profile?: any;
+  user1_profile?: UserProfile | null;
+  user2_profile?: UserProfile | null;
 }
 
 export interface Message {
@@ -26,7 +26,7 @@ export interface Message {
   sender_id: string;
   is_read: boolean;
   created_at: string;
-  sender_profile?: any;
+  sender_profile?: UserProfile | null;
 }
 
 export interface PickupOption {
@@ -34,6 +34,11 @@ export interface PickupOption {
   option_type: string;
   value: string;
   display_text: string;
+}
+
+export interface UserProfile {
+  username: string | null;
+  email: string | null;
 }
 
 export class MessagingService {

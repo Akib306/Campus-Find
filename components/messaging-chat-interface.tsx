@@ -5,10 +5,11 @@ import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Message, Conversation, PickupOption } from '@/lib/messaging-service';
 import { MessagingLocationPicker } from './messaging-location-picker';
 import { MessagingTimePicker } from './messaging-time-picker';
+import type { User } from '@supabase/supabase-js';
 
 interface MessagingChatInterfaceProps {
   conversation: Conversation;
-  currentUser: any;
+  currentUser: User;
 }
 
 export function MessagingChatInterface({ conversation, currentUser }: MessagingChatInterfaceProps) {
