@@ -215,7 +215,7 @@ export class MessagingService {
     }
 
     // Send confirmation message
-    const confirmationText = `✅ Confirmed! ${meetingDetails}`;
+    const confirmationText = `✅ Meeting Confirmed!\n📍 ${location}\n🕒 ${timeSlot}`;
     await this.sendMenuMessage(
       conversationId,
       'confirmation',
@@ -232,37 +232,43 @@ export class MessagingService {
       .single();
 
     if (conversation) {
-      // Send pickup code to the claimant (user who should have the code)
-      const claimantId = conversation.user2_id; // The one who claimed the item
-      if (userId === claimantId) {
-        const codeMessage = `Your pickup code: ${claimCode}\n\nGive this code to the other person when you meet to verify the return.`;
-        await this.sendMenuMessage(
-          conversationId,
-          'system',
-          codeMessage,
-          codeMessage,
-          userId
-        );
-      }
+      try {
+        // Send pickup code to the claimant (user who should have the code)
+        const claimantId = conversation.user2_id; // The one who claimed the item
+        if (userId === claimantId) {
+          const codeMessage = `🔐 Your Pickup Code: ${claimCode}\n\nGive this 6-digit code to the finder when you meet to verify the return.`;
+          await this.sendMenuMessage(
+            conversationId,
+            'system',
+            codeMessage,
+            codeMessage,
+            userId
+          );
+        }
 
-      // Send instruction to the item owner (user who should ask for the code)
-      const ownerId = conversation.user1_id; // The one who posted the item
-      if (userId === ownerId) {
-        const instructionMessage = `Ask for the pickup code when you meet to verify the item return.`;
-        await this.sendMenuMessage(
-          conversationId,
-          'system',
-          instructionMessage,
-          instructionMessage,
-          userId
-        );
+        // Send instruction to the item owner/finder (user who should enter the code)
+        const finderId = conversation.user1_id; // The one who posted the item
+        if (userId === finderId) {
+          const instructionMessage = `🔐 Please ask for the pickup code when you meet and enter it in the app to confirm the return.`;
+          await this.sendMenuMessage(
+            conversationId,
+            'system',
+            instructionMessage,
+            instructionMessage,
+            userId
+          );
+        }
+      } catch (systemMessageError) {
+        console.error('Error sending system messages:', systemMessageError);
+        // Don't throw here - the main confirmation was successful
+        // Just log the error but continue
       }
     }
 
     return { claimCode };
   }
 
-  // Confirm item pickup with verification code
+  // Confirm item pickup with verification code (called by finder)
   static async confirmPickup(conversationId: string, claimCode: string, userId: string) {
     const supabase = createClient();
     
@@ -317,9 +323,46 @@ export class MessagingService {
       'suggestion': `📍 Suggested: ${content}`,
       'confirmation': `✅ Confirmed: ${content}`,
       'share_contact': '📞 Shared contact information',
-      'system': content || '📢 System message'
+      'system': content || '📢 System message',
+      'share_email': content || '📧 Shared email address'
     };
     return templates[messageType] || content || '💬 Message';
+  }
+
+  // Get user email from database
+  static async getUserEmail(userId: string): Promise<string> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error getting user email:', error);
+      throw new Error('Could not retrieve user email');
+    }
+
+    return data.email;
+  }
+
+  // Share contact information with email
+  static async shareContact(conversationId: string, userId: string) {
+    try {
+      const userEmail = await this.getUserEmail(userId);
+      const contactMessage = `📧 My email address is: ${userEmail}`;
+      
+      await this.sendMenuMessage(
+        conversationId,
+        'share_email',
+        contactMessage,
+        contactMessage,
+        userId
+      );
+    } catch (error) {
+      console.error('Error sharing contact:', error);
+      throw error;
+    }
   }
 
   // Get other user ID in conversation
@@ -498,5 +541,45 @@ export class MessagingService {
       console.error('Error checking conversation status:', error);
       return false;
     }
+  }
+
+  // Simplified confirm meeting without system messages
+  static async confirmMeetingSimple(conversationId: string, meetingDetails: string, userId: string) {
+    const supabase = createClient();
+    
+    // Parse meeting details (format: "Location, Time Slot")
+    const [location, timeSlot] = meetingDetails.split(',').map(s => s.trim());
+    
+    // Generate pickup code
+    const claimCode = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log('Confirming meeting (simple):', { conversationId, location, timeSlot, claimCode });
+
+    // Update conversation with code and meeting details
+    const { error: updateError } = await supabase
+      .from('conversations')
+      .update({
+        arranged_location: location,
+        arranged_time: timeSlot,
+        claim_code: claimCode,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversationId);
+
+    if (updateError) {
+      console.error('Error updating conversation:', updateError);
+      throw updateError;
+    }
+
+    // Send confirmation message only
+    const confirmationText = `✅ Meeting Confirmed!\n📍 ${location}\n🕒 ${timeSlot}`;
+    await this.sendMenuMessage(
+      conversationId,
+      'confirmation',
+      meetingDetails,
+      confirmationText,
+      userId
+    );
+
+    return { claimCode };
   }
 }
