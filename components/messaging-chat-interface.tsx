@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Message, Conversation, PickupOption } from '@/lib/messaging-service';
@@ -25,7 +24,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   useEffect(() => {
     loadMessages();
     
-    // Real-time subscription for original messages table
+    // Real-time subscription for messages
     const supabase = createClient();
     
     console.log('🔔 Setting up real-time subscription for conversation:', conversation.id);
@@ -129,7 +128,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
           message.content,
           currentUser.id
         );
-
+        
         // Show pickup code to the user who confirmed
         if (claimCode) {
           alert(`Your pickup code: ${claimCode}\n\nGive this code to the other person when you meet to verify the return.`);
@@ -185,11 +184,11 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         </div>
       );
     }
-
+    
     // Show pickup confirmation button if meeting is confirmed but not completed
     const hasConfirmedMeeting = messages.some(m => m.message_type === 'confirmation');
     const isPickupCompleted = conversation.item_picked_up;
-
+    
     if (hasConfirmedMeeting && !isPickupCompleted) {
       return (
         <div className="flex gap-2 mt-4">
@@ -208,7 +207,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         </div>
       );
     }
-
+    
     // Default buttons for new conversations or no recent suggestions
     return (
       <div className="flex gap-2 mt-4">
@@ -319,7 +318,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         onClose={() => setShowLocationPicker(false)}
         onLocationSelect={handleLocationSelect}
       />
-
+      
       <MessagingTimePicker
         isOpen={showTimePicker}
         onClose={() => setShowTimePicker(false)}

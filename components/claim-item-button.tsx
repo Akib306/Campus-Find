@@ -1,5 +1,4 @@
 'use client';
-
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { MessagingService } from '@/lib/messaging-service';
