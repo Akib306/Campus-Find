@@ -1,6 +1,6 @@
 
 import Link from "next/link";
-import { Search } from "@/components/search";
+// import { Search } from "@/components/search";
 import { AuthButton } from "@/components/auth-button";
 import { EnvVarWarning } from "@/components/env-var-warning";
 import { hasEnvVars } from "@/lib/utils";
@@ -18,7 +18,7 @@ export async function Navbar() {
           </Link>
         </div>
         <div className="justify-self-center w-full">
-          <Search />
+          {/* <Search /> */}
         </div>
         <div className="justify-self-end flex items-center gap-2">
           {!hasEnvVars ? (

@@ -28,9 +28,13 @@ type Post = {
 
 interface LostItemsGridProps {
   categoryFilter?: string | null;
+  searchFilter?: string; // new: keyword-based search
 }
 
-export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
+export function LostItemsGrid({
+  categoryFilter = null,
+  searchFilter = "",
+}: LostItemsGridProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,9 +59,7 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
 
       setPosts(data || []);
     } catch (err: unknown) {
-      // Type as any for debugging
       console.error("Full Error Object:", JSON.stringify(err, null, 2));
-
       setError(
         err instanceof Error ? err.message : "Failed to fetch lost items"
       );
@@ -81,7 +83,6 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
           filter: "post_status=eq.open",
         },
         () => {
-          // Refetch on any change
           fetchLostItems();
         }
       )
@@ -91,6 +92,24 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
       supabase.removeChannel(channel);
     };
   }, [supabase, fetchLostItems]);
+
+  // Apply keyword-based search on the client side
+  const visiblePosts = useMemo(() => {
+    const term = (searchFilter || "").trim().toLowerCase();
+    if (!term) return posts;
+
+    return posts.filter((post) => {
+      const name = post.item_name?.toLowerCase() || "";
+      const desc = post.description?.toLowerCase() || "";
+      const loc = post.location_name?.toLowerCase() || "";
+
+      return (
+        name.includes(term) ||
+        desc.includes(term) ||
+        loc.includes(term)
+      );
+    });
+  }, [posts, searchFilter]);
 
   if (isLoading) {
     return (
@@ -108,7 +127,7 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
     );
   }
 
-  if (posts.length === 0) {
+  if (visiblePosts.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <p className="text-muted-foreground">No lost items found.</p>
@@ -132,112 +151,116 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
   };
 
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-        {posts.map((post) => {
-          const hasImages = post.image_path && post.image_path.length > 0;
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+      {visiblePosts.map((post) => {
+        const hasImages = post.image_path && post.image_path.length > 0;
 
-          return (
-            <Card
-              key={post.id}
-              className={`h-full ${
-                !hasImages
-                  ? "cursor-pointer hover:shadow-lg transition-shadow"
-                  : ""
-              }`}
-            >
-              {!hasImages ? (
-                <Link href={`/listings/${post.id}`} className="block">
-                  <CardHeader>
-                    <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                        No image
+        return (
+          <Card
+            key={post.id}
+            className={`h-full ${
+              !hasImages
+                ? "cursor-pointer hover:shadow-lg transition-shadow"
+                : ""
+            }`}
+          >
+            {!hasImages ? (
+              <Link href={`/listings/${post.id}`} className="block">
+                <CardHeader>
+                  <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      No image
+                    </div>
+                  </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-lg line-clamp-2">
+                      {post.item_name}
+                    </CardTitle>
+                    <Badge
+                      className={`${getCategoryColor(
+                        post.item_category
+                      )} text-white capitalize`}
+                    >
+                      {post.item_category}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="line-clamp-2 mb-1">
+                    {post.description || "No description"}
+                  </CardDescription>
+
+                  {post.location_name && (
+                    <p className="text-sm text-muted-foreground mb-1">
+                      📍 <span className="font-medium">Location:</span>{" "}
+                      {post.location_name}
+                    </p>
+                  )}
+
+                  <p className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(post.created_at), {
+                      addSuffix: true,
+                    })}
+                  </p>
+                </CardContent>
+              </Link>
+            ) : (
+              <>
+                <CardHeader>
+                  <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
+                    <Link href={`/listings/${post.id}`}>
+                      <div className="relative w-full h-full cursor-pointer hover:opacity-90 transition-opacity">
+                        <Image
+                          src={post.image_path[0]}
+                          alt={post.item_name}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                        {post.image_path.length > 1 && (
+                          <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                            +{post.image_path.length - 1}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-lg line-clamp-2">
-                        {post.item_name}
-                      </CardTitle>
-                      <Badge
-                        className={`${getCategoryColor(
-                          post.item_category
-                        )} text-white capitalize`}
-                      >
-                        {post.item_category}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="line-clamp-2 mb-2">
-                      {post.description || "No description"}
-                    </CardDescription>
-                    {post.location_name && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        📍 {post.location_name}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(post.created_at), {
-                        addSuffix: true,
-                      })}
+                    </Link>
+                  </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-lg line-clamp-2">
+                      {post.item_name}
+                    </CardTitle>
+                    <Badge
+                      className={`${getCategoryColor(
+                        post.item_category
+                      )} text-white capitalize`}
+                    >
+                      {post.item_category}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="line-clamp-2 mb-1">
+                    {post.description || "No description"}
+                  </CardDescription>
+
+                  {post.location_name && (
+                    <p className="text-sm text-muted-foreground mb-1">
+                      📍 <span className="font-medium">Location:</span>{" "}
+                      {post.location_name}
                     </p>
-                  </CardContent>
-                </Link>
-              ) : (
-                <>
-                  <CardHeader>
-                    <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
-                      <Link href={`/listings/${post.id}`}>
-                        <div className="relative w-full h-full cursor-pointer hover:opacity-90 transition-opacity">
-                          <Image
-                            src={post.image_path[0]}
-                            alt={post.item_name}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          />
-                          {post.image_path.length > 1 && (
-                            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                              +{post.image_path.length - 1}
-                            </div>
-                          )}
-                        </div>
-                      </Link>
-                    </div>
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-lg line-clamp-2">
-                        {post.item_name}
-                      </CardTitle>
-                      <Badge
-                        className={`${getCategoryColor(
-                          post.item_category
-                        )} text-white capitalize`}
-                      >
-                        {post.item_category}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="line-clamp-2 mb-2">
-                      {post.description || "No description"}
-                    </CardDescription>
-                    {post.location_name && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        📍 {post.location_name}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(post.created_at), {
-                        addSuffix: true,
-                      })}
-                    </p>
-                  </CardContent>
-                </>
-              )}
-            </Card>
-          );
-        })}
-      </div>
-    </>
+                  )}
+
+                  <p className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(post.created_at), {
+                      addSuffix: true,
+                    })}
+                  </p>
+                </CardContent>
+              </>
+            )}
+          </Card>
+        );
+      })}
+    </div>
   );
 }
