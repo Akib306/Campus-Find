@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Message, Conversation, PickupOption } from '@/lib/messaging-service';
 import { MessagingLocationPicker } from './messaging-location-picker';
@@ -11,6 +12,7 @@ interface MessagingChatInterfaceProps {
 }
 
 export function MessagingChatInterface({ conversation, currentUser }: MessagingChatInterfaceProps) {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
@@ -19,17 +21,18 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   const [pickupCode, setPickupCode] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<PickupOption | null>(null);
   const [selectedTime, setSelectedTime] = useState<PickupOption | null>(null);
+  const [userHasSuggestedAlternative, setUserHasSuggestedAlternative] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadMessages();
     
-    // Real-time subscription for messages
+    // Real-time subscription for messages with proper filter syntax
     const supabase = createClient();
     
     console.log('🔔 Setting up real-time subscription for conversation:', conversation.id);
     
-    const channel = supabase
+    const subscription = supabase
       .channel(`conversation:${conversation.id}`)
       .on(
         'postgres_changes',
@@ -39,33 +42,59 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
           table: 'messages',
           filter: `conversation_id=eq.${conversation.id}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('📨 Real-time update received:', payload);
           const newMessage = payload.new as Message;
           console.log('🆕 New message to add:', newMessage);
+          
+          // Check if message already exists to avoid duplicates
           setMessages(prev => {
+            const exists = prev.some(msg => msg.id === newMessage.id);
+            if (exists) {
+              console.log('⚠️ Message already exists, skipping...');
+              return prev;
+            }
             const updated = [...prev, newMessage];
             console.log('📊 Messages after update:', updated);
             return updated;
           });
+
+          // Refresh the page to update conversation list and other states
+          setTimeout(() => {
+            router.refresh();
+          }, 100);
         }
       )
-      .on('system', { event: 'ERROR' }, (error) => {
-        console.error('❌ Real-time subscription error:', error);
-      })
       .subscribe((status) => {
         console.log('📡 Real-time subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to real-time updates');
+        }
       });
 
     return () => {
       console.log('🧹 Cleaning up real-time subscription');
-      supabase.removeChannel(channel);
+      supabase.removeChannel(subscription);
     };
-  }, [conversation.id]);
+  }, [conversation.id, router]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Reset userHasSuggestedAlternative when new suggestion arrives from other user
+  useEffect(() => {
+    const lastSuggestionFromOther = [...messages]
+      .reverse()
+      .find(msg => 
+        msg.message_type === 'suggestion' && 
+        msg.sender_id !== currentUser.id
+      );
+    
+    if (lastSuggestionFromOther) {
+      setUserHasSuggestedAlternative(false);
+    }
+  }, [messages, currentUser.id]);
 
   const loadMessages = async () => {
     try {
@@ -101,13 +130,20 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     try {
       // Send the suggestion message
       const suggestionText = `${selectedLocation?.display_text}, ${timeSlot.display_text}`;
-      console.log('Sending suggestion:', suggestionText);
+      console.log('Sending alternative suggestion:', suggestionText);
       
       await MessagingService.sendMenuMessage(
         conversation.id,
         'suggestion',
         suggestionText
       );
+      
+      // Mark that user has suggested an alternative
+      setUserHasSuggestedAlternative(true);
+      
+      // Refresh messages to show the new suggestion
+      await loadMessages();
+      router.refresh();
       
       // Reset selections
       setSelectedLocation(null);
@@ -129,8 +165,13 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
           currentUser.id
         );
         
-        // Show pickup code to the user who confirmed
-        if (claimCode) {
+        // Refresh messages to show confirmation
+        await loadMessages();
+        router.refresh();
+        
+        // Show pickup code to the claimant (user who should have the code)
+        const isClaimant = currentUser.id === conversation.user2_id;
+        if (claimCode && isClaimant) {
           alert(`Your pickup code: ${claimCode}\n\nGive this code to the other person when you meet to verify the return.`);
         }
       }
@@ -146,6 +187,8 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         conversation.id,
         'share_contact'
       );
+      await loadMessages();
+      router.refresh();
     } catch (error) {
       console.error('Error sharing contact:', error);
     }
@@ -156,21 +199,31 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       await MessagingService.confirmPickup(conversation.id, pickupCode, currentUser.id);
       setShowPickupConfirm(false);
       setPickupCode('');
+      await loadMessages();
+      router.refresh();
     } catch (error) {
       console.error('Error confirming pickup:', error);
       alert('Invalid pickup code. Please check and try again.');
     }
   };
 
-  const getActionButtons = (lastMessage: Message) => {
-    console.log('Last message type:', lastMessage.message_type);
-    
+  const getActionButtons = () => {
+    // Find the last suggestion message from the other user that hasn't been confirmed
+    const lastSuggestionFromOther = [...messages]
+      .reverse()
+      .find(msg => 
+        msg.message_type === 'suggestion' && 
+        msg.sender_id !== currentUser.id &&
+        !messages.some(m => m.message_type === 'confirmation' && m.content?.includes(msg.content || ''))
+      );
+
     // Show confirm buttons for suggestion messages from other user
-    if (lastMessage.message_type === 'suggestion' && lastMessage.sender_id !== currentUser.id) {
+    // BUT only if user hasn't suggested an alternative
+    if (lastSuggestionFromOther && !userHasSuggestedAlternative) {
       return (
         <div className="flex gap-2 mt-2">
           <button
-            onClick={() => handleConfirm(lastMessage.id)}
+            onClick={() => handleConfirm(lastSuggestionFromOther.id)}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
             Confirm Meeting
@@ -181,6 +234,23 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
           >
             Suggest Alternative
           </button>
+        </div>
+      );
+    }
+    
+    // If user has suggested an alternative, show only the alternative suggestion info
+    if (userHasSuggestedAlternative) {
+      return (
+        <div className="flex gap-2 mt-2">
+          <button
+            disabled
+            className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed"
+          >
+            Confirm Meeting (Disabled)
+          </button>
+          <div className="text-sm text-gray-600 flex items-center">
+            You suggested an alternative - waiting for response
+          </div>
         </div>
       );
     }
@@ -227,20 +297,55 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     );
   };
 
-  if (loading) return <div className="p-4 text-gray-900 bg-white">Loading messages...</div>;
+  const renderMessageContent = (message: Message) => {
+    switch (message.message_type) {
+      case 'claim_initial':
+        return '👋 Hello, I believe this is my lost item';
+      case 'suggestion':
+        return `📍 ${message.display_text?.replace('📍 Suggested: ', '') || message.content?.replace('Suggested: ', '') || message.content}`;
+      case 'confirmation':
+        return `✅ ${message.display_text?.replace('✅ Confirmed: ', '') || message.content?.replace('Confirmed: ', '') || message.content}`;
+      case 'system':
+        return `📢 ${message.display_text || message.content}`;
+      case 'share_contact':
+        return '📞 Shared contact information';
+      default:
+        return message.display_text || message.content || '💬 Message';
+    }
+  };
 
-  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+  const getOtherUserName = () => {
+    const isUser1 = currentUser.id === conversation.user1_id;
+    return isUser1 ? 'User 2' : 'User 1';
+  };
+
+  if (loading) return <div className="p-4 text-gray-900 bg-white">Loading messages...</div>;
 
   return (
     <div className="flex flex-col h-96 border border-gray-300 rounded-lg bg-white">
       {/* Chat Header */}
       <div className="p-4 border-b border-gray-300 bg-gray-50">
         <h3 className="font-semibold text-gray-900">
-          Conversation
+          Chat with {getOtherUserName()}
         </h3>
         {conversation.arranged_location && conversation.arranged_time && (
           <div className="text-sm text-gray-700 mt-1">
-            Location: {conversation.arranged_location} • Time: {conversation.arranged_time}
+            📍 {conversation.arranged_location} • 🕒 {conversation.arranged_time}
+            {conversation.claim_code && currentUser.id === conversation.user2_id && (
+              <div className="text-xs text-green-600 mt-1">
+                Your pickup code: <strong>{conversation.claim_code}</strong>
+              </div>
+            )}
+            {conversation.claim_code && currentUser.id === conversation.user1_id && (
+              <div className="text-xs text-blue-600 mt-1">
+                ✅ Meeting confirmed - Ask for the pickup code when you meet
+              </div>
+            )}
+          </div>
+        )}
+        {conversation.item_picked_up && (
+          <div className="text-xs text-green-600 mt-1">
+            ✅ Item successfully returned
           </div>
         )}
       </div>
@@ -262,13 +367,18 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
                     : 'bg-gray-100 text-gray-900 border border-gray-200'
                 }`}
               >
-                <div className="text-sm whitespace-pre-line">{message.display_text}</div>
+                <div className="text-sm whitespace-pre-line">
+                  {renderMessageContent(message)}
+                </div>
                 <div className="text-xs text-gray-600 mt-1">
                   {new Date(message.created_at).toLocaleTimeString()}
                 </div>
                 
                 {/* Show action buttons for suggestion messages from other user */}
-                {message.message_type === 'suggestion' && message.sender_id !== currentUser.id && (
+                {/* Only show if user hasn't suggested an alternative */}
+                {message.message_type === 'suggestion' && 
+                 message.sender_id !== currentUser.id && 
+                 !userHasSuggestedAlternative && (
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => handleConfirm(message.id)}
@@ -293,23 +403,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
 
       {/* Action Buttons */}
       <div className="p-4 border-t border-gray-300 bg-gray-50">
-        {lastMessage && getActionButtons(lastMessage)}
-        {!lastMessage && (
-          <div className="flex gap-2">
-            <button
-              onClick={handleArrangePickup}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Arrange Pickup
-            </button>
-            <button
-              onClick={handleShareContact}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Share Contact
-            </button>
-          </div>
-        )}
+        {getActionButtons()}
       </div>
 
       {/* Modals */}

@@ -1,5 +1,4 @@
 'use client';
-
 import { Conversation } from '@/lib/messaging-service';
 
 interface MessagingConversationListProps {
@@ -37,12 +36,21 @@ export function MessagingConversationList({
             Conversation {conversation.id.slice(0, 8)}...
           </div>
           <div className="text-xs text-gray-600 mt-1">
-            Last updated: {new Date(conversation.updated_at).toLocaleDateString()}
+            {conversation.arranged_location ? (
+              <>
+                📍 {conversation.arranged_location}
+                {conversation.arranged_time && ` • 🕒 ${conversation.arranged_time}`}
+              </>
+            ) : (
+              `Last updated: ${new Date(conversation.updated_at).toLocaleDateString()}`
+            )}
           </div>
           <div className={`text-xs mt-1 ${
-            conversation.status === 'active' ? 'text-green-600' : 'text-gray-500'
+            conversation.status === 'active' ? 'text-green-600' : 
+            conversation.status === 'completed' ? 'text-gray-500' : 'text-orange-500'
           }`}>
             {conversation.status}
+            {conversation.item_picked_up && ' • ✅ Returned'}
           </div>
         </div>
       ))}
