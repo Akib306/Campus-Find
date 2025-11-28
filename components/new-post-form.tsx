@@ -1,9 +1,7 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-
 import {
   Dialog,
   DialogClose,
@@ -14,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
 import {
   Select,
   SelectContent,
@@ -22,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusIcon } from "lucide-react";
@@ -31,9 +27,9 @@ import { toast } from "sonner";
 const defaultImageSrc = "./project-screenshot.png";
 const MAX_IMAGES = 5;
 
-// Helper function to generate claim code
-function generateClaimCode() {
-  return Math.floor(100000 + Math.random() * 900000); // 6-digit random code
+// Helper function to generate claim code as integer
+function generateClaimCode(): number {
+  return Math.floor(100000 + Math.random() * 900000); // 6-digit random code as integer
 }
 
 export function NewPostForm() {
@@ -100,14 +96,12 @@ export function NewPostForm() {
     setIsLoading(true);
     setError(null);
     setSuccess(false);
-
     try {
       if (selectedFiles.length > MAX_IMAGES) {
         setError(`You can upload up to ${MAX_IMAGES} images.`);
         setIsLoading(false);
         return;
       }
-
       // Get current user
       const {
         data: { user },
@@ -115,10 +109,8 @@ export function NewPostForm() {
       if (!user) {
         throw new Error("You must be logged in to post items");
       }
-
-      // Step 1: Generate claim code
+      // Step 1: Generate claim code as integer
       const claimCode = generateClaimCode();
-
       // Step 2: Create the post first (without images) to get a post ID
       const { data: insertedPost, error: insertError } = await supabase
         .from("posts")
@@ -131,18 +123,15 @@ export function NewPostForm() {
             location_name: locationName,
             image_path: [],
             post_status: "open",
-            claim_code: claimCode, // Add claim code here
+            claim_code: claimCode, // Add claim code here as integer
           },
         ])
         .select("id, claim_code")
         .single();
-
       if (insertError || !insertedPost) {
         throw new Error(insertError?.message || "Failed to create post");
       }
-
       const postId = insertedPost.id as string;
-
       // Step 3: Upload all selected images (if any) to storage under {postId}/
       const uploadedPaths: string[] = [];
       if (selectedFiles.length > 0) {
@@ -154,7 +143,6 @@ export function NewPostForm() {
             extension ? `.${extension}` : ""
           }`;
           const storagePath = `public/${postId}/${uniqueName}`;
-
           const { error: uploadError } = await supabase.storage
             .from("post-images")
             .upload(storagePath, file, {
@@ -162,7 +150,6 @@ export function NewPostForm() {
               upsert: false,
               contentType: file.type,
             });
-
           if (uploadError) {
             // Rollback: remove any previously uploaded files and delete the post
             if (uploadedPaths.length > 0) {
@@ -171,23 +158,19 @@ export function NewPostForm() {
             await supabase.from("posts").delete().eq("id", postId);
             throw new Error(uploadError.message);
           }
-
           uploadedPaths.push(storagePath);
         }
       }
-
       // Step 4: Resolve public URLs for all uploaded images
       const publicUrls: string[] = uploadedPaths.map((p) => {
         const { data } = supabase.storage.from("post-images").getPublicUrl(p);
         return data.publicUrl;
       });
-
       // Step 5: Update the post with the image URL array
       const { error: updateError } = await supabase
         .from("posts")
         .update({ image_path: publicUrls })
         .eq("id", postId);
-
       if (updateError) {
         // Rollback storage and the post if update fails
         if (uploadedPaths.length > 0) {
@@ -196,7 +179,6 @@ export function NewPostForm() {
         await supabase.from("posts").delete().eq("id", postId);
         throw new Error(updateError.message);
       }
-
       // Success
       setSuccess(true);
       // Reset form
@@ -238,7 +220,6 @@ export function NewPostForm() {
             <PlusIcon /> New Post
           </Button>
         </DialogTrigger>
-
         <DialogContent className="sm:max-w-[600px]">
           <form onSubmit={handleSubmit} className="grid gap-4">
             <DialogHeader>
@@ -247,7 +228,6 @@ export function NewPostForm() {
                 Submit details about a lost item you found.
               </DialogDescription>
             </DialogHeader>
-
             <div className="grid gap-2">
               <Label htmlFor="item_name">Item Name</Label>
               <Input
