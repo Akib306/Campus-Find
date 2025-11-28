@@ -233,31 +233,30 @@ export class MessagingService {
 
     if (conversation) {
       try {
-        // Send pickup code to the claimant (user who should have the code)
-        const claimantId = conversation.user2_id; // The one who claimed the item
-        if (userId === claimantId) {
-          const codeMessage = `🔐 Your Pickup Code: ${claimCode}\n\nGive this 6-digit code to the finder when you meet to verify the return.`;
-          await this.sendMenuMessage(
-            conversationId,
-            'system',
-            codeMessage,
-            codeMessage,
-            userId
-          );
-        }
+        // Send pickup code to the claimant (user who claimed the item)
+        const claimantId = conversation.user2_id;
+        const finderId = conversation.user1_id;
 
-        // Send instruction to the item owner/finder (user who should enter the code)
-        const finderId = conversation.user1_id; // The one who posted the item
-        if (userId === finderId) {
-          const instructionMessage = `🔐 Please ask for the pickup code when you meet and enter it in the app to confirm the return.`;
-          await this.sendMenuMessage(
-            conversationId,
-            'system',
-            instructionMessage,
-            instructionMessage,
-            userId
-          );
-        }
+        // Send pickup code message to CLAIMANT
+        const codeMessage = `🔐 Your Pickup Code: ${claimCode}\n\nGive this 6-digit code to the finder when you meet to verify the return.`;
+        await this.sendMenuMessage(
+          conversationId,
+          'system',
+          codeMessage,
+          codeMessage,
+          claimantId  // Send from system to claimant
+        );
+
+        // Send instruction message to FINDER
+        const instructionMessage = `🔐 Please ask the claimant for the pickup code when you meet and enter it in the app to confirm the return.`;
+        await this.sendMenuMessage(
+          conversationId,
+          'system',
+          instructionMessage,
+          instructionMessage,
+          finderId  // Send from system to finder
+        );
+
       } catch (systemMessageError) {
         console.error('Error sending system messages:', systemMessageError);
         // Don't throw here - the main confirmation was successful
@@ -268,7 +267,7 @@ export class MessagingService {
     return { claimCode };
   }
 
-  // Confirm item pickup with verification code (called by finder)
+  // Confirm item pickup with verification code (called by finder ONLY)
   static async confirmPickup(conversationId: string, claimCode: string, userId: string) {
     const supabase = createClient();
     
