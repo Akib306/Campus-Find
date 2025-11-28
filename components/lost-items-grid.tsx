@@ -17,6 +17,16 @@ import { MapPin, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "./ui/button";
 
+type UserReliabilityStats = {
+  user_id: string;
+  total_posts: number;
+  helpful_posts: number;
+  total_votes_received: number;
+  votes_cast: number;
+  is_new_user: boolean;
+};
+
+
 type Post = {
   id: string;
   item_name: string;
@@ -32,13 +42,25 @@ type Post = {
     email: string;
     avatar_url: string | null;
   } | null;
+  posting_user_reliability?: UserReliabilityStats | null;
 };
+
 
 export function LostItemsGrid() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
+  const [userReliabilityByUserId, setUserReliabilityByUserId] = useState<
+    Map<string, UserReliabilityStats>
+  >(new Map());
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [myVotesByPostId, setMyVotesByPostId] = useState<
+    Record<string, boolean | undefined>
+  >({});
+  const [voteBusyByPostId, setVoteBusyByPostId] = useState<Record<string, boolean>>(
+    {}
+  );
 
   const fetchLostItems = useCallback(async () => {
     try {
@@ -116,6 +138,125 @@ export function LostItemsGrid() {
       supabase.removeChannel(channel);
     };
   }, [supabase, fetchLostItems]);
+
+  useEffect(() => {
+    // Resolve current user (needed for voting and restricted views)
+    supabase.auth.getUser().then(({ data }) => {
+      setMyUserId(data.user?.id ?? null);
+    });
+  }, [supabase]);
+
+  async function fetchReliabilityForUsers(
+    supabase: ReturnType<typeof createClient>,
+    userIds: string[]
+  ): Promise<Map<string, UserReliabilityStats>> {
+    if (userIds.length === 0) return new Map();
+  
+    const { data, error } = await supabase
+      .from('user_reliability_stats')
+      .select('user_id,total_posts,helpful_posts,total_votes_received,votes_cast,is_new_user')
+      .in('user_id', userIds);
+  
+    // If unauthenticated or blocked by RLS/grants, fall back gracefully
+    if (error || !data) return new Map();
+  
+    return new Map(data.map((row) => [row.user_id, row]));
+  }
+
+  async function fetchMyVotesForPosts(
+    supabase: ReturnType<typeof createClient>,
+    voterId: string,
+    postIds: string[]
+  ) {
+    if (!voterId || postIds.length === 0) return;
+    const { data, error } = await supabase
+      .from("post_helpfulness_votes")
+      .select("post_id,is_helpful")
+      .eq("voter_id", voterId)
+      .in("post_id", postIds);
+
+    if (error || !data) return;
+
+    const next: Record<string, boolean | undefined> = {};
+    for (const row of data) {
+      next[row.post_id as string] = Boolean(row.is_helpful);
+    }
+    setMyVotesByPostId((prev) => ({ ...prev, ...next }));
+  }
+
+
+  useEffect(() => {
+    // After posts or auth resolved, fetch reliability and my votes
+    const userIds = Array.from(new Set(posts.map((p) => p.user_id)));
+    if (userIds.length > 0) {
+      fetchReliabilityForUsers(supabase, userIds).then((map) =>
+        setUserReliabilityByUserId(map)
+      );
+    }
+    if (myUserId) {
+      const postIds = posts.map((p) => p.id);
+      fetchMyVotesForPosts(supabase, myUserId, postIds);
+    }
+  }, [posts, myUserId, supabase]);
+
+  const handleVote = useCallback(
+    async (post: Post, isHelpful: boolean) => {
+      if (!myUserId) return; // optionally prompt login
+      if (post.user_id === myUserId) return; // cannot vote on own post per RLS
+      if (voteBusyByPostId[post.id]) return;
+
+      setVoteBusyByPostId((prev) => ({ ...prev, [post.id]: true }));
+      const current = myVotesByPostId[post.id];
+      try {
+        if (current === isHelpful) {
+          // clicking again removes the vote
+          const { error } = await supabase
+            .from("post_helpfulness_votes")
+            .delete()
+            .match({ post_id: post.id, voter_id: myUserId });
+          if (error) throw error;
+          setMyVotesByPostId((prev) => ({ ...prev, [post.id]: undefined }));
+        } else if (current === undefined) {
+          const { error } = await supabase
+            .from("post_helpfulness_votes")
+            .upsert(
+              { post_id: post.id, voter_id: myUserId, is_helpful: isHelpful },
+              { onConflict: "post_id,voter_id" }
+            );
+          if (error) throw error;
+          setMyVotesByPostId((prev) => ({ ...prev, [post.id]: isHelpful }));
+        } else {
+          const { error } = await supabase
+            .from("post_helpfulness_votes")
+            .update({ is_helpful: isHelpful })
+            .match({ post_id: post.id, voter_id: myUserId });
+          if (error) throw error;
+          setMyVotesByPostId((prev) => ({ ...prev, [post.id]: isHelpful }));
+        }
+
+        // Refresh reliability for the post author so the "people helped" number updates
+        const updatedMap = await fetchReliabilityForUsers(supabase, [
+          post.user_id,
+        ]);
+        setUserReliabilityByUserId((prev) => {
+          const merged = new Map(prev);
+          for (const [key, value] of updatedMap.entries()) {
+            merged.set(key, value);
+          }
+          return merged;
+        });
+      } catch {
+        // noop
+      } finally {
+        setVoteBusyByPostId((prev) => {
+          const next = { ...prev };
+          delete next[post.id];
+          return next;
+        });
+      }
+    },
+    [myUserId, myVotesByPostId, supabase, voteBusyByPostId]
+  );
 
   if (isLoading) {
     return (
@@ -216,15 +357,28 @@ export function LostItemsGrid() {
                   <AvatarFallback className="bg-accent">{post.posting_user?.email ? post.posting_user?.email.charAt(0).toUpperCase() : "?"}</AvatarFallback>
                 </Avatar>
                 <p className="text-base text-muted-foreground">{post.posting_user?.username}</p>
+                <p className="ml-auto text-xs text-muted-foreground">
+                  Helped {userReliabilityByUserId.get(post.user_id)?.helpful_posts ?? 0} people
+                </p>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <p>Did you find this post helpful?</p>
-                <Button variant="ghost" size="sm">
+                <Button
+                  variant={myVotesByPostId[post.id] === true ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => handleVote(post, true)}
+                  disabled={!myUserId || post.user_id === myUserId || !!voteBusyByPostId[post.id]}
+                >
                   <ThumbsUp />
                   Yes
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button
+                  variant={myVotesByPostId[post.id] === false ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => handleVote(post, false)}
+                  disabled={!myUserId || post.user_id === myUserId || !!voteBusyByPostId[post.id]}
+                >
                   <ThumbsDown />
                   No
                 </Button>
