@@ -379,4 +379,124 @@ export class MessagingService {
 
     return data?.length || 0;
   }
+
+  // Refresh conversation data
+  static async refreshConversation(conversationId: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', conversationId)
+      .single();
+    
+    if (error) {
+      console.error('Error refreshing conversation:', error);
+      throw error;
+    }
+    
+    return data;
+  }
+
+  // Get conversation by ID
+  static async getConversationById(conversationId: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', conversationId)
+      .single();
+
+    if (error) {
+      console.error('Error getting conversation:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  // Check if user is part of conversation
+  static async isUserInConversation(conversationId: string, userId: string): Promise<boolean> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('user1_id, user2_id')
+      .eq('id', conversationId)
+      .single();
+
+    if (error) {
+      console.error('Error checking conversation membership:', error);
+      return false;
+    }
+
+    return data.user1_id === userId || data.user2_id === userId;
+  }
+
+  // Get conversation participants
+  static async getConversationParticipants(conversationId: string) {
+    const supabase = createClient();
+    const { data: conversation, error } = await supabase
+      .from('conversations')
+      .select(`
+        user1_id,
+        user2_id,
+        profiles1:user1_id (id, username, email),
+        profiles2:user2_id (id, username, email)
+      `)
+      .eq('id', conversationId)
+      .single();
+
+    if (error) {
+      console.error('Error getting conversation participants:', error);
+      throw error;
+    }
+
+    return {
+      user1: conversation.profiles1,
+      user2: conversation.profiles2
+    };
+  }
+
+  // Send system message to both users
+  static async sendSystemMessageToBoth(conversationId: string, message: string) {
+    const supabase = createClient();
+    
+    // Get conversation participants
+    const participants = await this.getConversationParticipants(conversationId);
+    
+    // Send system message (will be visible to both users)
+    await this.sendMenuMessage(
+      conversationId,
+      'system',
+      message,
+      message
+    );
+  }
+
+  // Update conversation status
+  static async updateConversationStatus(conversationId: string, status: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('conversations')
+      .update({
+        status: status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversationId);
+
+    if (error) {
+      console.error('Error updating conversation status:', error);
+      throw error;
+    }
+  }
+
+  // Check if conversation exists and is active
+  static async isConversationActive(conversationId: string): Promise<boolean> {
+    try {
+      const conversation = await this.getConversationById(conversationId);
+      return conversation.status === 'active';
+    } catch (error) {
+      console.error('Error checking conversation status:', error);
+      return false;
+    }
+  }
 }
