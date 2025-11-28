@@ -22,6 +22,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   const [selectedLocation, setSelectedLocation] = useState<PickupOption | null>(null);
   const [selectedTime, setSelectedTime] = useState<PickupOption | null>(null);
   const [currentState, setCurrentState] = useState<'initial' | 'waiting_confirmation' | 'suggesting_alternative' | 'confirmed' | 'completed'>('initial');
+  const [claimantPickupCode, setClaimantPickupCode] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Check if current user is the finder (user who posted the item)
@@ -51,17 +52,19 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
           const newMessage = payload.new as Message;
           console.log('🆕 New message to add:', newMessage);
           
-          // Check if message already exists to avoid duplicates
-          setMessages(prev => {
-            const exists = prev.some(msg => msg.id === newMessage.id);
-            if (exists) {
-              console.log('⚠️ Message already exists, skipping...');
-              return prev;
-            }
-            const updated = [...prev, newMessage];
-            console.log('📊 Messages after update:', updated);
-            return updated;
-          });
+          // Only add non-private messages or private messages for current user
+          if (!newMessage.private || (newMessage.private && newMessage.sender_id === currentUser.id)) {
+            setMessages(prev => {
+              const exists = prev.some(msg => msg.id === newMessage.id);
+              if (exists) {
+                console.log('⚠️ Message already exists, skipping...');
+                return prev;
+              }
+              const updated = [...prev, newMessage];
+              console.log('📊 Messages after update:', updated);
+              return updated;
+            });
+          }
 
           // Refresh the page to update conversation list and other states
           setTimeout(() => {
@@ -80,11 +83,12 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       console.log('🧹 Cleaning up real-time subscription');
       supabase.removeChannel(subscription);
     };
-  }, [conversation.id, router]);
+  }, [conversation.id, router, currentUser.id]);
 
   useEffect(() => {
     scrollToBottom();
     updateCurrentState();
+    loadClaimantPickupCode();
   }, [messages]);
 
   const updateCurrentState = () => {
@@ -119,10 +123,21 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     }
   };
 
+  const loadClaimantPickupCode = async () => {
+    if (isClaimant && currentState === 'confirmed') {
+      try {
+        const code = await MessagingService.getClaimantPickupCode(conversation.id, currentUser.id);
+        setClaimantPickupCode(code);
+      } catch (error) {
+        console.error('Error loading pickup code:', error);
+      }
+    }
+  };
+
   const loadMessages = async () => {
     try {
       console.log('📥 Loading messages for conversation:', conversation.id);
-      const conversationMessages = await MessagingService.getConversationMessages(conversation.id);
+      const conversationMessages = await MessagingService.getConversationMessages(conversation.id, currentUser.id);
       console.log('📨 Messages loaded:', conversationMessages);
       setMessages(conversationMessages);
     } catch (error) {
@@ -190,7 +205,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         console.log('Confirming meeting with details:', lastSuggestionFromOther.content);
         
         // Use the full confirm method to send proper system messages
-        const { claimCode } = await MessagingService.confirmMeeting(
+        await MessagingService.confirmMeeting(
           conversation.id,
           lastSuggestionFromOther.content,
           currentUser.id
@@ -199,8 +214,9 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         // Update state to confirmed
         setCurrentState('confirmed');
         
-        // Refresh messages to show confirmation and pickup code
+        // Refresh messages to show confirmation and load pickup code
         await loadMessages();
+        await loadClaimantPickupCode();
         router.refresh();
       }
     } catch (error) {
@@ -300,28 +316,42 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
 
       case 'confirmed':
         return (
-          <div className="flex gap-2">
-            {/* Only show Confirm Pickup button for finder (person who should enter the code) */}
-            {isFinder && (
-              <button
-                onClick={() => setShowPickupConfirm(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Confirm Pickup
-              </button>
-            )}
-            {/* Show different message for claimant */}
-            {isClaimant && (
-              <div className="text-sm text-blue-600 flex items-center">
-                ✅ Meeting confirmed - Share the pickup code when you meet
+          <div className="space-y-3">
+            {/* Show pickup code for CLAIMANT */}
+            {isClaimant && claimantPickupCode && (
+              <div className="bg-green-100 border border-green-300 rounded-lg p-3 text-center">
+                <div className="text-sm font-semibold text-green-800">Your Pickup Code</div>
+                <div className="text-2xl font-mono font-bold text-green-900 my-2">{claimantPickupCode}</div>
+                <div className="text-xs text-green-700">
+                  Give this code to the finder when you meet
+                </div>
               </div>
             )}
-            <button
-              onClick={handleShareContact}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Share Contact
-            </button>
+            
+            {/* Show pickup instruction for FINDER */}
+            {isFinder && (
+              <div className="bg-blue-100 border border-blue-300 rounded-lg p-3 text-center">
+                <div className="text-sm font-semibold text-blue-800">Pickup Instructions</div>
+                <div className="text-xs text-blue-700 mb-2">
+                  Ask the claimant for the pickup code and enter it below
+                </div>
+                <button
+                  onClick={() => setShowPickupConfirm(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Enter Pickup Code
+                </button>
+              </div>
+            )}
+            
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={handleShareContact}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Share Contact
+              </button>
+            </div>
           </div>
         );
 
@@ -349,8 +379,8 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         return 'You have a meeting suggestion. Confirm or suggest an alternative';
       case 'confirmed':
         return isFinder 
-          ? 'Meeting confirmed! Ask for the pickup code and enter it below.' 
-          : 'Meeting confirmed! Check the chat for your pickup code.';
+          ? 'Meeting confirmed! Coordinate the pickup below.' 
+          : 'Meeting confirmed! Your pickup code is shown below.';
       case 'completed':
         return 'Item successfully returned.';
       default:
@@ -367,6 +397,8 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       case 'confirmation':
         return `✅ ${message.display_text?.replace('✅ Confirmed: ', '') || message.content?.replace('Confirmed: ', '') || message.content}`;
       case 'system':
+        // Don't show private system messages in chat
+        if (message.private) return null;
         return `📢 ${message.display_text || message.content}`;
       case 'share_contact':
         return '📞 Shared contact information';
@@ -396,16 +428,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         {conversation.arranged_location && conversation.arranged_time && (
           <div className="text-sm text-gray-700 mt-1">
             📍 {conversation.arranged_location} • 🕒 {conversation.arranged_time}
-            {conversation.claim_code && isClaimant && (
-              <div className="text-xs text-green-600 mt-1">
-                Your pickup code will appear in the chat
-              </div>
-            )}
-            {conversation.claim_code && isFinder && (
-              <div className="text-xs text-blue-600 mt-1">
-                ✅ Meeting confirmed - Ask for the pickup code
-              </div>
-            )}
           </div>
         )}
         {conversation.item_picked_up && (
@@ -421,25 +443,30 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
           <div className="text-center text-gray-700">No messages yet. Start the conversation!</div>
         ) : (
           <div className="space-y-3">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`p-3 rounded-lg max-w-xs ${
-                  message.sender_id === currentUser.id 
-                    ? 'bg-blue-100 ml-auto border border-blue-200 text-gray-900' 
-                    : message.message_type === 'system'
-                    ? 'bg-yellow-100 text-gray-900 border border-yellow-300 text-center'
-                    : 'bg-gray-100 text-gray-900 border border-gray-200'
-                }`}
-              >
-                <div className="text-sm whitespace-pre-line">
-                  {renderMessageContent(message)}
+            {messages.map((message) => {
+              const content = renderMessageContent(message);
+              if (!content) return null; // Skip private system messages
+              
+              return (
+                <div
+                  key={message.id}
+                  className={`p-3 rounded-lg max-w-xs ${
+                    message.sender_id === currentUser.id 
+                      ? 'bg-blue-100 ml-auto border border-blue-200 text-gray-900' 
+                      : message.message_type === 'system'
+                      ? 'bg-yellow-100 text-gray-900 border border-yellow-300 text-center'
+                      : 'bg-gray-100 text-gray-900 border border-gray-200'
+                  }`}
+                >
+                  <div className="text-sm whitespace-pre-line">
+                    {content}
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {new Date(message.created_at).toLocaleTimeString()}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-600 mt-1">
-                  {new Date(message.created_at).toLocaleTimeString()}
-                </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
         )}
