@@ -65,7 +65,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
               return updated;
             });
           }
-
           // Refresh the page to update conversation list and other states
           setTimeout(() => {
             router.refresh();
@@ -137,7 +136,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   const loadMessages = async () => {
     try {
       console.log('📥 Loading messages for conversation:', conversation.id);
-      const conversationMessages = await MessagingService.getConversationMessages(conversation.id, currentUser.id);
+      const conversationMessages = await MessagingService.getConversationMessages(conversation.id);
       console.log('📨 Messages loaded:', conversationMessages);
       setMessages(conversationMessages);
     } catch (error) {
@@ -243,7 +242,17 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
 
   const handleConfirmPickup = async () => {
     try {
-      await MessagingService.confirmPickup(conversation.id, pickupCode, currentUser.id);
+      // Clean the input before sending
+      const cleanCode = pickupCode.replace(/\D/g, '').trim();
+      
+      if (cleanCode.length !== 6) {
+        alert('Please enter a valid 6-digit code');
+        return;
+      }
+      
+      console.log('🔐 Attempting pickup confirmation with code:', cleanCode);
+      
+      await MessagingService.confirmPickup(conversation.id, cleanCode, currentUser.id);
       setShowPickupConfirm(false);
       setPickupCode('');
       setCurrentState('completed');
@@ -251,9 +260,38 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       router.refresh();
     } catch (error) {
       console.error('Error confirming pickup:', error);
-      alert('Invalid pickup code. Please check and try again.');
+      
+      // More specific error message
+      if (error.message.includes('Invalid pickup code')) {
+        alert('The pickup code you entered is incorrect. Please ask the claimant for the correct code.');
+      } else {
+        alert('Error confirming pickup. Please try again.');
+      }
     }
   };
+
+  // Temporary debug method - call this when the chat loads
+  const debugPickupCode = async () => {
+    if (currentState === 'confirmed') {
+      const debugData = await MessagingService.debugConversation(conversation.id);
+      console.log('🔍 CURRENT PICKUP CODE DEBUG:', {
+        conversationId: conversation.id,
+        storedCode: debugData?.claim_code,
+        claimantId: conversation.user2_id,
+        finderId: conversation.user1_id,
+        currentUserId: currentUser.id,
+        isClaimant: isClaimant
+      });
+      
+      if (isClaimant && claimantPickupCode) {
+        console.log('📱 CLAIMANT SEES CODE:', claimantPickupCode);
+      }
+    }
+  };
+
+  useEffect(() => {
+    debugPickupCode();
+  }, [currentState, claimantPickupCode]);
 
   const getActionButtons = () => {
     switch (currentState) {
@@ -274,7 +312,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
             </button>
           </div>
         );
-
       case 'waiting_confirmation':
         return (
           <div className="text-center">
@@ -289,7 +326,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
             </button>
           </div>
         );
-
       case 'suggesting_alternative':
         return (
           <div className="flex gap-2">
@@ -313,7 +349,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
             </button>
           </div>
         );
-
       case 'confirmed':
         return (
           <div className="space-y-3">
@@ -354,7 +389,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
             </div>
           </div>
         );
-
       case 'completed':
         return (
           <div className="text-center">
@@ -363,7 +397,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
             </div>
           </div>
         );
-
       default:
         return null;
     }
