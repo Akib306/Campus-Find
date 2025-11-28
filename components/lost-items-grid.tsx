@@ -45,8 +45,11 @@ type Post = {
   posting_user_reliability?: UserReliabilityStats | null;
 };
 
+interface LostItemsGridProps {
+  categoryFilter?: string | null;
+}
 
-export function LostItemsGrid() {
+export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +68,7 @@ export function LostItemsGrid() {
   const fetchLostItems = useCallback(async () => {
     try {
       setIsLoading(true);
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from("posts")
         .select(`
           id,
@@ -83,8 +86,15 @@ export function LostItemsGrid() {
             avatar_url
           )
         `)
-        .eq("post_status", "open")
-        .order("created_at", { ascending: false });
+        .eq("post_status", "open");
+
+      if (categoryFilter) {
+        query = query.eq("item_category", categoryFilter);
+      }
+
+      const { data, error: fetchError } = await query.order("created_at", {
+        ascending: false,
+      });
 
       if (fetchError) {
         throw fetchError;
@@ -111,7 +121,7 @@ export function LostItemsGrid() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, categoryFilter]);
 
   useEffect(() => {
     fetchLostItems();
@@ -300,94 +310,169 @@ export function LostItemsGrid() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-      {posts.map((post) => (
-        <Card key={post.id} className="h-full hover:shadow-lg transition-shadow gap-2">
-            <CardHeader>
-              <div className="relative w-full h-48 mb-2 rounded-lg overflow-hidden bg-muted">
-                {post.image_path && post.image_path.length > 0 ? (
-                  <Image
-                    src={post.image_path[0]}
-                    alt={post.item_name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    No image
-                  </div>
-                )}
-              </div>
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-xl md:text-2xl">
-                  {post.item_name} 
-                </CardTitle>
-                <Badge
-                  variant="outline"
-                  className={`${getCategoryColor(
-                    post.item_category
-                  )} capitalize`}
-                >
-                  {post.item_category}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="leading-relaxed mb-2">
-                {post.description || "No description"}
-              </CardDescription>
-              {post.location_name && (
-                <div className="flex items-center text-sm text-muted-foreground mb-2">
-                  <span className="flex items-center gap-1">
-                    <MapPin size={14} /> {post.location_name}
-                  </span>
-                </div>
+      {posts.map((post) => {
+        const hasImages = Boolean(post.image_path && post.image_path.length > 0);
+
+        return (
+          <Card
+            key={post.id}
+            className={`flex flex-col h-full hover:shadow-lg transition-shadow ${
+              !hasImages ? "cursor-pointer" : ""
+            }`}
+          >
+            <div className="flex-1">
+              {hasImages ? (
+                <>
+                  <CardHeader>
+                    <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
+                      <Link href={`/listings/${post.id}`}>
+                        <div className="relative w-full h-full cursor-pointer hover:opacity-90 transition-opacity">
+                          <Image
+                            src={post.image_path[0]}
+                            alt={post.item_name}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          />
+                          {post.image_path.length > 1 && (
+                            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                              +{post.image_path.length - 1}
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-lg md:text-xl line-clamp-2">
+                        {post.item_name}
+                      </CardTitle>
+                      <Badge
+                        variant="outline"
+                        className={`${getCategoryColor(
+                          post.item_category
+                        )} capitalize`}
+                      >
+                        {post.item_category}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="line-clamp-2 mb-2">
+                      {post.description || "No description"}
+                    </CardDescription>
+                    {post.location_name && (
+                      <p className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                        <MapPin size={14} /> {post.location_name}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(post.created_at), {
+                        addSuffix: true,
+                      })}
+                    </p>
+                  </CardContent>
+                </>
+              ) : (
+                <Link href={`/listings/${post.id}`} className="block h-full">
+                  <CardHeader>
+                    <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-muted">
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        No image
+                      </div>
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-lg md:text-xl line-clamp-2">
+                        {post.item_name}
+                      </CardTitle>
+                      <Badge
+                        variant="outline"
+                        className={`${getCategoryColor(
+                          post.item_category
+                        )} capitalize`}
+                      >
+                        {post.item_category}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="line-clamp-2 mb-2">
+                      {post.description || "No description"}
+                    </CardDescription>
+                    {post.location_name && (
+                      <p className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                        <MapPin size={14} /> {post.location_name}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(post.created_at), {
+                        addSuffix: true,
+                      })}
+                    </p>
+                  </CardContent>
+                </Link>
               )}
-              <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(post.created_at), {
-                  addSuffix: true,
-                })}
-              </p>
+            </div>
 
-              <hr className="my-2 border-border" />
-
-              <div className="flex items-center gap-2 border-border">
+            <CardContent className="border-t mt-2 pt-4 space-y-3">
+              <div className="flex items-center gap-2">
                 <Avatar className="size-6">
                   {post.posting_user?.avatar_url && (
-                    <AvatarImage src={post.posting_user?.avatar_url} alt={post.posting_user?.email} />
+                    <AvatarImage
+                      src={post.posting_user?.avatar_url}
+                      alt={post.posting_user?.email}
+                    />
                   )}
-                  <AvatarFallback className="bg-accent">{post.posting_user?.email ? post.posting_user?.email.charAt(0).toUpperCase() : "?"}</AvatarFallback>
+                  <AvatarFallback className="bg-accent">
+                    {post.posting_user?.email
+                      ? post.posting_user?.email.charAt(0).toUpperCase()
+                      : "?"}
+                  </AvatarFallback>
                 </Avatar>
-                <p className="text-sm font-medium text-foreground">{post.posting_user?.username}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {post.posting_user?.username ?? "Anonymous user"}
+                </p>
                 <p className="ml-auto text-xs text-muted-foreground">
-                  Helped {userReliabilityByUserId.get(post.user_id)?.helpful_posts ?? 0} people
+                  Helped{" "}
+                  {userReliabilityByUserId.get(post.user_id)?.helpful_posts ?? 0}{" "}
+                  people
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <p>Did you find this post helpful?</p>
                 <Button
                   variant={myVotesByPostId[post.id] === true ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => handleVote(post, true)}
-                  disabled={!myUserId || post.user_id === myUserId || !!voteBusyByPostId[post.id]}
+                  disabled={
+                    !myUserId ||
+                    post.user_id === myUserId ||
+                    !!voteBusyByPostId[post.id]
+                  }
+                  className="gap-1"
                 >
-                  <ThumbsUp />
+                  <ThumbsUp className="h-4 w-4" />
                   Yes
                 </Button>
                 <Button
                   variant={myVotesByPostId[post.id] === false ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => handleVote(post, false)}
-                  disabled={!myUserId || post.user_id === myUserId || !!voteBusyByPostId[post.id]}
+                  disabled={
+                    !myUserId ||
+                    post.user_id === myUserId ||
+                    !!voteBusyByPostId[post.id]
+                  }
+                  className="gap-1"
                 >
-                  <ThumbsDown />
+                  <ThumbsDown className="h-4 w-4" />
                   No
                 </Button>
               </div>
             </CardContent>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
     </div>
   );
 }

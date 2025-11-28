@@ -135,3 +135,4 @@ INSERT INTO pickup_options (option_type, value, display_text, sort_order) VALUES
 ('time_slot', '19:30-20:00', '7:30 PM - 8:00 PM', 22),
 ('time_slot', '20:00-20:30', '8:00 PM - 8:30 PM', 23),
 ('time_slot', '20:30-21:00', '8:30 PM - 9:00 PM', 24);
+
