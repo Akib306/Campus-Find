@@ -30,7 +30,7 @@ export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimIt
       }
 
       // Start the conversation and generate pickup code
-      const { conversation, claimCode } = await MessagingService.claimItem(
+      await MessagingService.claimItem(
         postId,
         user.id,
         postOwnerId
