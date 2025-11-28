@@ -24,6 +24,10 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   const [currentState, setCurrentState] = useState<'initial' | 'waiting_confirmation' | 'suggesting_alternative' | 'confirmed' | 'completed'>('initial');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Check if current user is the finder (user who posted the item)
+  const isFinder = currentUser.id === conversation.user1_id;
+  const isClaimant = currentUser.id === conversation.user2_id;
+
   useEffect(() => {
     loadMessages();
     
@@ -185,8 +189,8 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       if (lastSuggestionFromOther && lastSuggestionFromOther.content) {
         console.log('Confirming meeting with details:', lastSuggestionFromOther.content);
         
-        // Use the simple confirm method to avoid system message errors
-        const { claimCode } = await MessagingService.confirmMeetingSimple(
+        // Use the full confirm method to send proper system messages
+        const { claimCode } = await MessagingService.confirmMeeting(
           conversation.id,
           lastSuggestionFromOther.content,
           currentUser.id
@@ -195,15 +199,9 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         // Update state to confirmed
         setCurrentState('confirmed');
         
-        // Refresh messages to show confirmation
+        // Refresh messages to show confirmation and pickup code
         await loadMessages();
         router.refresh();
-        
-        // Show pickup code to the claimant (user who should have the code)
-        const isClaimant = currentUser.id === conversation.user2_id;
-        if (claimCode && isClaimant) {
-          alert(`Your pickup code: ${claimCode}\n\nGive this code to the other person when you meet to verify the return.`);
-        }
       }
     } catch (error) {
       console.error('Error confirming meeting:', error);
@@ -218,14 +216,12 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
 
   const handleShareContact = async () => {
     try {
-      await MessagingService.sendMenuMessage(
-        conversation.id,
-        'share_contact'
-      );
+      await MessagingService.shareContact(conversation.id, currentUser.id);
       await loadMessages();
       router.refresh();
     } catch (error) {
       console.error('Error sharing contact:', error);
+      alert('Error sharing contact information. Please try again.');
     }
   };
 
@@ -305,12 +301,21 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       case 'confirmed':
         return (
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowPickupConfirm(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Confirm Pickup
-            </button>
+            {/* Only show Confirm Pickup button for finder (person who should enter the code) */}
+            {isFinder && (
+              <button
+                onClick={() => setShowPickupConfirm(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Confirm Pickup
+              </button>
+            )}
+            {/* Show different message for claimant */}
+            {isClaimant && (
+              <div className="text-sm text-blue-600 flex items-center">
+                ✅ Meeting confirmed - Share the pickup code when you meet
+              </div>
+            )}
             <button
               onClick={handleShareContact}
               className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
@@ -343,7 +348,9 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       case 'suggesting_alternative':
         return 'You have a meeting suggestion. Confirm or suggest an alternative';
       case 'confirmed':
-        return 'Meeting confirmed! Coordinate the pickup.';
+        return isFinder 
+          ? 'Meeting confirmed! Ask for the pickup code and enter it below.' 
+          : 'Meeting confirmed! Check the chat for your pickup code.';
       case 'completed':
         return 'Item successfully returned.';
       default:
@@ -363,14 +370,15 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         return `📢 ${message.display_text || message.content}`;
       case 'share_contact':
         return '📞 Shared contact information';
+      case 'share_email':
+        return `${message.display_text || message.content}`;
       default:
         return message.display_text || message.content || '💬 Message';
     }
   };
 
   const getOtherUserName = () => {
-    const isUser1 = currentUser.id === conversation.user1_id;
-    return isUser1 ? 'User 2' : 'User 1';
+    return isFinder ? 'Claimant' : 'Finder';
   };
 
   if (loading) return <div className="p-4 text-gray-900 bg-white">Loading messages...</div>;
@@ -388,14 +396,14 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         {conversation.arranged_location && conversation.arranged_time && (
           <div className="text-sm text-gray-700 mt-1">
             📍 {conversation.arranged_location} • 🕒 {conversation.arranged_time}
-            {conversation.claim_code && currentUser.id === conversation.user2_id && (
+            {conversation.claim_code && isClaimant && (
               <div className="text-xs text-green-600 mt-1">
-                Your pickup code: <strong>{conversation.claim_code}</strong>
+                Your pickup code will appear in the chat
               </div>
             )}
-            {conversation.claim_code && currentUser.id === conversation.user1_id && (
+            {conversation.claim_code && isFinder && (
               <div className="text-xs text-blue-600 mt-1">
-                ✅ Meeting confirmed - Ask for the pickup code when you meet
+                ✅ Meeting confirmed - Ask for the pickup code
               </div>
             )}
           </div>
@@ -455,12 +463,12 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         onTimeSelect={handleTimeSelect}
       />
 
-      {/* Pickup Confirmation Modal */}
-      {showPickupConfirm && (
+      {/* Pickup Confirmation Modal - Only for finder */}
+      {showPickupConfirm && isFinder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-80 max-w-sm border border-gray-300">
             <h3 className="text-lg font-semibold mb-4 text-gray-900">Confirm Item Return</h3>
-            <p className="mb-4 text-sm text-gray-700">Enter the 6-digit pickup code provided by the other person:</p>
+            <p className="mb-4 text-sm text-gray-700">Enter the 6-digit pickup code provided by the claimant:</p>
             <input
               type="text"
               value={pickupCode}
