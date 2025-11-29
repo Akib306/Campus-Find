@@ -15,7 +15,7 @@ export function Navbar({
   const isDashboard = variant === "dashboard";
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full bg-background backdrop-blur supports-[backdrop-filter]:bg-transparent">
       <nav className="mx-auto w-[80%] grid grid-cols-3 h-14 items-center gap-3 pt-2 sm:px-6 lg:px-8">
         <div className="justify-self-start">
           <Link href="/" className="text-lg font-bold text-primary">
