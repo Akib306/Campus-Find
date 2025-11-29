@@ -131,14 +131,22 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
       .channel("lost-items-changes")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "posts",
-          filter: "post_status=eq.open",
-        },
+        { event: "INSERT", schema: "public", table: "posts" },
         () => {
-          // Refetch on any change
+          fetchLostItems();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "posts" },
+        () => {
+          fetchLostItems();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "posts" },
+        () => {
           fetchLostItems();
         }
       )

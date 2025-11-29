@@ -44,7 +44,17 @@ export default function DashboardClient({ initialCounts }: { initialCounts: Reco
       .channel("category-counts-changes")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "posts", filter: "post_status=eq.open" },
+        { event: "INSERT", schema: "public", table: "posts" },
+        fetchCategoryCounts
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "posts" },
+        fetchCategoryCounts
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "posts" },
         fetchCategoryCounts
       )
       .subscribe();
