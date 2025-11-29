@@ -2,7 +2,15 @@ import { EmeraldBackground } from "@/components/emerald-background";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, Search, ShieldCheck, Bell } from "lucide-react";
+import {
+  ArrowRight,
+  Search,
+  ShieldCheck,
+  Bell,
+  PlusCircle,
+  MessageCircle,
+  Users,
+} from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -41,7 +49,7 @@ export default function LandingPage() {
               </h3>
               <p className="text-sm text-zinc-400 leading-relaxed">
                 Secure login with your university email ensures trustworthy
-                interactions. Only verified students can post and search.
+                interactions. Only verified students & faculty can post and search.
               </p>
             </div>
             <div className="p-6 rounded-xl bg-black/20 backdrop-blur-sm border border-white/10 hover:bg-black/30 transition-colors">
@@ -62,6 +70,36 @@ export default function LandingPage() {
               <p className="text-sm text-zinc-400 leading-relaxed">
                 Get notified immediately when a possible match is found. Stay
                 updated on the status of your reported items.
+              </p>
+            </div>
+            <div className="p-6 rounded-xl bg-black/20 backdrop-blur-sm border border-white/10 hover:bg-black/30 transition-colors">
+              <PlusCircle className="h-10 w-10 text-emerald-400 mb-4" />
+              <h3 className="text-lg font-semibold mb-2 text-white">
+                Easy Reporting
+              </h3>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                Create detailed posts in seconds. Upload
+                photos and set locations to help others identify items.
+              </p>
+            </div>
+            <div className="p-6 rounded-xl bg-black/20 backdrop-blur-sm border border-white/10 hover:bg-black/30 transition-colors">
+              <MessageCircle className="h-10 w-10 text-emerald-400 mb-4" />
+              <h3 className="text-lg font-semibold mb-2 text-white">
+                Secure Messaging
+              </h3>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                Connect safely with other students through our built-in chat
+                system to arrange item returns without sharing personal info.
+              </p>
+            </div>
+            <div className="p-6 rounded-xl bg-black/20 backdrop-blur-sm border border-white/10 hover:bg-black/30 transition-colors">
+              <Users className="h-10 w-10 text-emerald-400 mb-4" />
+              <h3 className="text-lg font-semibold mb-2 text-white">
+                Community Driven
+              </h3>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                Join a supportive community of students helping each other.
+                Together, we make our campus a better place.
               </p>
             </div>
           </div>
