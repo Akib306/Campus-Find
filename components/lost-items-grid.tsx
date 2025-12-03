@@ -151,8 +151,9 @@ export function LostItemsGrid({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-      {visiblePosts.map((post) => {
+    <div className="w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+        {visiblePosts.map((post) => {
         const hasImages = post.image_path && post.image_path.length > 0;
 
         return (
@@ -261,6 +262,7 @@ export function LostItemsGrid({
           </Card>
         );
       })}
+      </div>
     </div>
   );
 }

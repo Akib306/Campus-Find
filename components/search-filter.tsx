@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Search } from "@/components/search";
+import { Search, type SearchSuggestion } from "@/components/search";
 import {
   Card,
   CardContent,
@@ -83,18 +83,20 @@ export default function ListingsSearchFilter() {
   const normalizedSearch = searchTerm.toLowerCase().trim();
 
   // build suggestions from item_name
-  const suggestions = useMemo(() => {
+  const suggestions = useMemo<SearchSuggestion[]>(() => {
     if (!normalizedSearch) return [];
     const seen = new Set<string>();
-    const list: string[] = [];
+    const list: SearchSuggestion[] = [];
     for (const p of posts) {
       const name = p.item_name ?? "";
-      if (
-        name.toLowerCase().includes(normalizedSearch) &&
-        !seen.has(name.toLowerCase())
-      ) {
-        seen.add(name.toLowerCase());
-        list.push(name);
+      const lower = name.toLowerCase();
+      if (lower.includes(normalizedSearch) && !seen.has(lower)) {
+        seen.add(lower);
+        list.push({
+          label: name,
+          category: p.item_category,
+          location: p.location_name,
+        });
       }
       if (list.length >= 5) break;
     }

@@ -6,6 +6,8 @@ import { LostItemsGrid } from "@/components/lost-items-grid";
 import { CategorySidebar } from "@/components/category-sidebar";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Search } from "@/components/search";
+import type { SearchSuggestion } from "@/components/search";
+import { useSearch } from "@/components/search-context";
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -13,9 +15,7 @@ export default function Home() {
     {}
   );
 
-  // search state
-  const [searchTerm, setSearchTerm] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const { searchTerm, setSearchTerm, suggestions, setSuggestions } = useSearch();
 
   const supabase = useMemo(() => createClient(), []);
 
@@ -44,14 +44,26 @@ export default function Home() {
         setCategoryCounts(counts);
 
         // Build simple keyword suggestions from item names
-        const nameSet = new Set<string>();
+        const suggestionMap = new Map<string, SearchSuggestion>();
         (data || []).forEach((row) => {
           if (row.item_name && typeof row.item_name === "string") {
-            nameSet.add(row.item_name.trim());
+            const key = row.item_name.trim();
+            const existing = suggestionMap.get(key) || {
+              label: key,
+              category: row.item_category ?? null,
+              location: row.location_name ?? null,
+              count: 0,
+            };
+            suggestionMap.set(key, {
+              ...existing,
+              count: (existing.count || 0) + 1,
+              category: existing.category ?? row.item_category ?? null,
+              location: existing.location ?? row.location_name ?? null,
+            });
           }
         });
 
-        setSuggestions(Array.from(nameSet).slice(0, 10)); // cap at 10
+        setSuggestions(Array.from(suggestionMap.values()));
       } catch (err) {
         console.error("Error fetching category counts:", err);
       }
@@ -79,7 +91,7 @@ export default function Home() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, setSuggestions]);
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -92,27 +104,6 @@ export default function Home() {
               Browse items that have been reported as lost
             </p>
           </div>
-
-          {/* Page search bar (this one actually controls filtering) */}
-          <div className="w-full flex justify-center mb-8">
-            <div className="w-full max-w-2xl">
-              <Search
-                value={searchTerm}
-                onChange={setSearchTerm}
-                suggestions={suggestions}
-                placeholder="Search lost items..."
-             />
-            </div>
-          </div>
-
-          {/* <div className="mb-6 max-w-2xl">
-            <Search
-              value={searchTerm}
-              onChange={setSearchTerm}
-              suggestions={suggestions}
-              placeholder="Search lost items..."
-            />
-          </div> */}
 
           {/* Layout: sidebar + grid */}
           <div className="flex flex-col md:flex-row gap-8">
