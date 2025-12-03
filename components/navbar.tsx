@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { AuthButton } from "@/components/auth-button";
+import { AuthButton, type UserInfo } from "@/components/auth-button";
 import { EnvVarWarning } from "@/components/env-var-warning";
 import { AlertModal } from "./alert-modal";
 import { hasEnvVars } from "@/lib/utils";
@@ -12,8 +12,10 @@ import { useSearch } from "@/components/search-context";
 
 export function Navbar({
   variant = "landing",
+  initialUser,
 }: {
   variant?: "landing" | "dashboard";
+  initialUser?: UserInfo;
 }) {
   const isDashboard = variant === "dashboard";
 
@@ -49,11 +51,11 @@ export function Navbar({
               <NewPostForm />
               <AlertModal />
               <NotificationBell />
-              <AuthButton />
+              <AuthButton initialUser={initialUser} />
             </>
           ) : (
             <>
-              <AuthButton />
+              <AuthButton initialUser={initialUser} />
             </>
           )}
         </div>

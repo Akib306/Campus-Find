@@ -11,11 +11,23 @@ import {
   MessageCircle,
   Users,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  let initialUser: { email: string; avatarUrl: string | null } | null = null;
+  if (auth.user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", auth.user.id)
+      .single();
+    initialUser = { email: auth.user.email ?? "", avatarUrl: profile?.avatar_url ?? null };
+  }
   return (
     <EmeraldBackground>
-      <Navbar variant="landing" />
+      <Navbar variant="landing" initialUser={initialUser} />
       <main className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] px-4 text-center text-white">
         <div className="max-w-5xl w-full space-y-12 py-20">
           {/* Hero Section */}

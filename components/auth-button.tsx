@@ -6,11 +6,18 @@ import { Button } from "./ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { NavAvatar } from "./ui/nav-avatar";
 
-type UserInfo = { email: string; avatarUrl: string | null } | null;
+export type UserInfo = { email: string; avatarUrl: string | null } | null;
 
-export function AuthButton() {
+export function AuthButton({ initialUser }: { initialUser?: UserInfo } = {}) {
   const supabase = useMemo(() => createClient(), []);
-  const [userInfo, setUserInfo] = useState<UserInfo>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo>(initialUser ?? null);
+
+  // Keep in sync if server-provided initial user changes across navigations
+  useEffect(() => {
+    if (initialUser !== undefined) {
+      setUserInfo(initialUser ?? null);
+    }
+  }, [initialUser]);
 
   useEffect(() => {
     let isMounted = true;
