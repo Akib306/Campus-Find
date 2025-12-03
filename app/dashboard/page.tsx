@@ -1,18 +1,36 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import DashboardClient from "@/components/dashboard-client";
 
-export default async function ProtectedPage() {
+export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const { data, error } = await supabase.auth.getClaims();
-  if (error || !data?.claims) {
+  const { data: authData, error: authError } = await supabase.auth.getClaims();
+  if (authError || !authData?.claims) {
     redirect("/auth/login");
   }
 
+  const { data: postData, error: postError } = await supabase
+    .from("posts")
+    .select("item_category")
+    .eq("post_status", "open");
+
+    const counts: Record<"all" | "electronic" | "stationery" | "book" | "clothing", number> = {
+      all: postData?.length ?? 0,
+      electronic: 0,
+      stationery: 0,
+      book: 0,
+      clothing: 0,
+    };
+    for (const row of postData ?? []) {
+      const key = row.item_category as "electronic" | "stationery" | "book" | "clothing";
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+
   return (
     <>
-    
+      <DashboardClient initialCounts={counts} />
     </>
   );
 }

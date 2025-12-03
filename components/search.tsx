@@ -50,8 +50,9 @@ export function Search({
     if (saved) setRecentSearches(JSON.parse(saved));
   }, []);
 
+  // Only auto-close when query is cleared; don't auto-open based on value
   useEffect(() => {
-    setOpen(Boolean(normalizedQuery));
+    if (!normalizedQuery) setOpen(false);
   }, [normalizedQuery]);
 
   useEffect(() => {
@@ -161,6 +162,21 @@ export function Search({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Close suggestions when clicking outside of the search container
+  useEffect(() => {
+    function onDocumentMouseDown(e: MouseEvent) {
+      const root = searchInputRef.current;
+      if (!root) return;
+      const target = e.target as Node | null;
+      if (target && !root.contains(target)) {
+        setOpen(false);
+        setHighlightIndex(-1);
+      }
+    }
+    document.addEventListener("mousedown", onDocumentMouseDown);
+    return () => document.removeEventListener("mousedown", onDocumentMouseDown);
   }, []);
 
   return (

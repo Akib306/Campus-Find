@@ -127,7 +127,7 @@ export default function MessagingPage() {
           </h2>
           
           {selectedConversation ? (
-            <MessagingChatInterface conversation={selectedConversation} currentUser={user} />
+            <MessagingChatInterface conversation={selectedConversation} currentUser={user!} />
           ) : (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <div className="text-gray-500">
