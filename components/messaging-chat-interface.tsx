@@ -28,7 +28,18 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     : conversation.user1_profile;
 
   useEffect(() => {
-    loadMessages();
+    const fetchMessages = async () => {
+      try {
+        const conversationMessages = await MessagingService.getConversationMessages(conversation.id);
+        setMessages(conversationMessages);
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMessages();
     
     // Real-time subscription
     const supabase = createClient();
@@ -58,17 +69,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const loadMessages = async () => {
-    try {
-      const conversationMessages = await MessagingService.getConversationMessages(conversation.id);
-      setMessages(conversationMessages);
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

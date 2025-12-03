@@ -47,9 +47,13 @@ type Post = {
 
 interface LostItemsGridProps {
   categoryFilter?: string | null;
+  searchFilter?: string; // new: keyword-based search
 }
 
-export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
+export function LostItemsGrid({
+  categoryFilter = null,
+  searchFilter = "",
+}: LostItemsGridProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,9 +116,7 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
       );
 
     } catch (err: unknown) {
-      // Type as any for debugging
       console.error("Full Error Object:", JSON.stringify(err, null, 2));
-
       setError(
         err instanceof Error ? err.message : "Failed to fetch lost items"
       );
@@ -156,6 +158,18 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
       supabase.removeChannel(channel);
     };
   }, [supabase, fetchLostItems]);
+
+  // Apply keyword-based search on the client side (from search branch)
+  const visiblePosts = useMemo(() => {
+    const term = (searchFilter || "").trim().toLowerCase();
+    if (!term) return posts;
+    return posts.filter((post) => {
+      const name = post.item_name?.toLowerCase() || "";
+      const desc = post.description?.toLowerCase() || "";
+      const loc = post.location_name?.toLowerCase() || "";
+      return name.includes(term) || desc.includes(term) || loc.includes(term);
+    });
+  }, [posts, searchFilter]);
 
   useEffect(() => {
     // Resolve current user (needed for voting and restricted views)
@@ -292,7 +306,7 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
     );
   }
 
-  if (posts.length === 0) {
+  if (visiblePosts.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <p className="text-muted-foreground">No lost items found.</p>
@@ -318,7 +332,7 @@ export function LostItemsGrid({ categoryFilter = null }: LostItemsGridProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-      {posts.map((post) => {
+      {visiblePosts.map((post) => {
         const hasImages = Boolean(post.image_path && post.image_path.length > 0);
 
         return (
