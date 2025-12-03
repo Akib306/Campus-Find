@@ -5,11 +5,12 @@ import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Conversation } from '@/lib/messaging-service';
 import { MessagingConversationList } from '@/components/messaging-conversation-list';
 import { MessagingChatInterface } from '@/components/messaging-chat-interface';
+import type { User } from '@supabase/supabase-js';
 
 export default function MessagingPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

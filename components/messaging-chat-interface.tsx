@@ -5,10 +5,11 @@ import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Message, Conversation, PickupOption } from '@/lib/messaging-service';
 import { MessagingLocationPicker } from './messaging-location-picker';
 import { MessagingTimePicker } from './messaging-time-picker';
+import type { User } from '@supabase/supabase-js';
 
 interface MessagingChatInterfaceProps {
   conversation: Conversation;
-  currentUser: any;
+  currentUser: User;
 }
 
 export function MessagingChatInterface({ conversation, currentUser }: MessagingChatInterfaceProps) {
@@ -27,7 +28,18 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     : conversation.user1_profile;
 
   useEffect(() => {
-    loadMessages();
+    const fetchMessages = async () => {
+      try {
+        const conversationMessages = await MessagingService.getConversationMessages(conversation.id);
+        setMessages(conversationMessages);
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMessages();
     
     // Real-time subscription
     const supabase = createClient();
@@ -57,17 +69,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const loadMessages = async () => {
-    try {
-      const conversationMessages = await MessagingService.getConversationMessages(conversation.id);
-      setMessages(conversationMessages);
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

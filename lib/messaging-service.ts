@@ -1,5 +1,10 @@
 import { createClient } from '@/lib/supabase/client';
 
+export interface ProfileSummary {
+  username: string | null;
+  email: string | null;
+}
+
 export interface Conversation {
   id: string;
   post_id: string;
@@ -13,8 +18,8 @@ export interface Conversation {
   picked_up_at?: string;
   created_at: string;
   updated_at: string;
-  user1_profile?: any;
-  user2_profile?: any;
+  user1_profile?: ProfileSummary;
+  user2_profile?: ProfileSummary;
 }
 
 export interface Message {
@@ -26,7 +31,7 @@ export interface Message {
   sender_id: string;
   is_read: boolean;
   created_at: string;
-  sender_profile?: any;
+  sender_profile?: ProfileSummary;
 }
 
 export interface PickupOption {
