@@ -9,10 +9,11 @@ import { MessagingActionButtons } from './messaging-action-buttons';
 import { MessagingPickupModal } from './messaging-pickup-modal';
 import { MessagingLocationPicker } from './messaging-location-picker';
 import { MessagingTimePicker } from './messaging-time-picker';
+import type { User } from '@supabase/supabase-js';
 
 interface MessagingChatInterfaceProps {
   conversation: Conversation;
-  currentUser: any;
+  currentUser: User;
 }
 
 export function MessagingChatInterface({ conversation, currentUser }: MessagingChatInterfaceProps) {
@@ -33,7 +34,18 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   const isClaimant = currentUser.id === conversation.user2_id;
 
   useEffect(() => {
-    loadMessages();
+    const fetchMessages = async () => {
+      try {
+        const conversationMessages = await MessagingService.getConversationMessages(conversation.id, currentUser.id);
+        setMessages(conversationMessages);
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMessages();
     
     // Real-time subscription for messages
     const supabase = createClient();

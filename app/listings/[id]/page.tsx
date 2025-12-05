@@ -70,7 +70,7 @@ export default function ListingPage() {
         }
 
         setPost(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to fetch post");
       } finally {
         setIsLoading(false);
