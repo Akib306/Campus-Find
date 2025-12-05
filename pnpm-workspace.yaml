@@ -1,2 +1,5 @@
 onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - sharp
   - supabase
+  - unrs-resolver
