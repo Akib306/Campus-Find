@@ -11,22 +11,22 @@ export default async function DashboardPage() {
     redirect("/auth/login");
   }
 
-  const { data: postData, error: postError } = await supabase
+  const { data: postData } = await supabase
     .from("posts")
     .select("item_category")
     .eq("post_status", "open");
 
-    const counts: Record<"all" | "electronic" | "stationery" | "book" | "clothing", number> = {
-      all: postData?.length ?? 0,
-      electronic: 0,
-      stationery: 0,
-      book: 0,
-      clothing: 0,
-    };
-    for (const row of postData ?? []) {
-      const key = row.item_category as "electronic" | "stationery" | "book" | "clothing";
-      counts[key] = (counts[key] ?? 0) + 1;
-    }
+  const counts: Record<"all" | "electronic" | "stationery" | "book" | "clothing", number> = {
+    all: postData?.length ?? 0,
+    electronic: 0,
+    stationery: 0,
+    book: 0,
+    clothing: 0,
+  };
+  for (const row of postData ?? []) {
+    const key = row.item_category as "electronic" | "stationery" | "book" | "clothing";
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
 
   return (
     <>

@@ -1,5 +1,5 @@
-'use client';
-import { useEffect, useState, useRef } from 'react';
+"use client";
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Message, Conversation, PickupOption } from '@/lib/messaging-service';
@@ -25,7 +25,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   const [showPickupConfirm, setShowPickupConfirm] = useState(false);
   const [pickupCode, setPickupCode] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<PickupOption | null>(null);
-  const [selectedTime, setSelectedTime] = useState<PickupOption | null>(null);
   const [currentState, setCurrentState] = useState<'initial' | 'waiting_confirmation' | 'suggesting_alternative' | 'confirmed' | 'completed'>('initial');
   const [claimantPickupCode, setClaimantPickupCode] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -100,13 +99,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     };
   }, [conversation.id, router, currentUser.id]);
 
-  useEffect(() => {
-    scrollToBottom();
-    updateCurrentState();
-    loadClaimantPickupCode();
-  }, [messages]);
-
-  const updateCurrentState = () => {
+  const updateCurrentState = useCallback(() => {
     // Check if meeting is confirmed
     const hasConfirmedMeeting = messages.some(m => m.message_type === 'confirmation');
     const isPickupCompleted = conversation.item_picked_up;
@@ -136,9 +129,9 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       // If other user sent the last suggestion, current user can respond
       setCurrentState('suggesting_alternative');
     }
-  };
+  }, [messages, conversation.item_picked_up, currentUser.id]);
 
-  const loadClaimantPickupCode = async () => {
+  const loadClaimantPickupCode = useCallback(async () => {
     if (isClaimant && currentState === 'confirmed') {
       try {
         const code = await MessagingService.getClaimantPickupCode(conversation.id, currentUser.id);
@@ -147,7 +140,13 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         console.error('Error loading pickup code:', error);
       }
     }
-  };
+  }, [isClaimant, currentState, conversation.id, currentUser.id]);
+
+  useEffect(() => {
+    scrollToBottom();
+    updateCurrentState();
+    void loadClaimantPickupCode();
+  }, [messages, updateCurrentState, loadClaimantPickupCode]);
 
   const loadMessages = async () => {
     try {
@@ -177,7 +176,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   };
 
   const handleTimeSelect = async (timeSlot: PickupOption) => {
-    setSelectedTime(timeSlot);
     setShowTimePicker(false);
     
     try {
@@ -200,7 +198,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       
       // Reset selections
       setSelectedLocation(null);
-      setSelectedTime(null);
     } catch (error) {
       console.error('Error sending suggestion:', error);
     }

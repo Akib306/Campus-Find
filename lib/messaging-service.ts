@@ -579,11 +579,6 @@ export class MessagingService {
 
   // Send system message to both users
   static async sendSystemMessageToBoth(conversationId: string, message: string) {
-    const supabase = createClient();
-    
-    // Get conversation participants
-    const participants = await this.getConversationParticipants(conversationId);
-    
     // Send system message (will be visible to both users)
     await this.sendMenuMessage(
       conversationId,

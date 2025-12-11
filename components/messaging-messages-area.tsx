@@ -1,11 +1,15 @@
+import type { RefObject } from "react";
+import type { Message } from "@/lib/messaging-service";
+import type { User } from "@supabase/supabase-js";
+
 interface MessagingMessagesAreaProps {
-  messages: any[];
-  currentUser: any;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  messages: Message[];
+  currentUser: User;
+  messagesEndRef: RefObject<HTMLDivElement | null>;
 }
 
 export function MessagingMessagesArea({ messages, currentUser, messagesEndRef }: MessagingMessagesAreaProps) {
-  const renderMessageContent = (message: any) => {
+  const renderMessageContent = (message: Message) => {
     switch (message.message_type) {
       case 'claim_initial':
         return '👋 Hello, I believe this is my lost item';

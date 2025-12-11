@@ -4,6 +4,12 @@ import { createClient } from '@/lib/supabase/client';
 import { MessagingService } from '@/lib/messaging-service';
 import { useState, useEffect } from 'react';
 
+interface PostData {
+  user_id: string;
+  claimed_by_user_id: string | null;
+  item_name: string;
+}
+
 interface ClaimItemButtonProps {
   postId: string;
   postOwnerId: string;
@@ -13,26 +19,26 @@ interface ClaimItemButtonProps {
 export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimItemButtonProps) {
   const router = useRouter();
   const [isAlreadyClaimed, setIsAlreadyClaimed] = useState(false);
-  const [postData, setPostData] = useState<any>(null);
+  const [postData, setPostData] = useState<PostData | null>(null);
 
   useEffect(() => {
-    fetchPostData();
-  }, [postId, postOwnerId]);
+    const fetchPostData = async () => {
+      const supabase = createClient();
+      const { data: post } = await supabase
+        .from('posts')
+        .select('user_id, claimed_by_user_id, item_name')
+        .eq('id', postId)
+        .single();
 
-  const fetchPostData = async () => {
-    const supabase = createClient();
-    const { data: post } = await supabase
-      .from('posts')
-      .select('user_id, claimed_by_user_id, item_name')
-      .eq('id', postId)
-      .single();
-    
-    setPostData(post);
-    
-    if (post?.claimed_by_user_id) {
-      setIsAlreadyClaimed(true);
-    }
-  };
+      setPostData(post);
+
+      if (post?.claimed_by_user_id) {
+        setIsAlreadyClaimed(true);
+      }
+    };
+
+    void fetchPostData();
+  }, [postId, postOwnerId]);
 
   const handleClaimItem = async () => {
     try {
@@ -72,9 +78,11 @@ export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimIt
       router.push(`/messaging?conversation=${result.conversation.id}`);
       router.refresh();
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error claiming item:', error);
-      alert('Error claiming item: ' + (error.message || 'Please try again.'));
+      const message =
+        error instanceof Error ? error.message : 'Please try again.';
+      alert('Error claiming item: ' + message);
     }
   };
 

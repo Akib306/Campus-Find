@@ -1,13 +1,25 @@
-'use client';
+"use client";
+
+import type { Conversation } from "@/lib/messaging-service";
 
 interface MessagingChatHeaderProps {
-  conversation: any;
+  conversation: Conversation;
   isFinder: boolean;
-  currentState: string;
+  currentState:
+    | "initial"
+    | "waiting_confirmation"
+    | "suggesting_alternative"
+    | "confirmed"
+    | "completed";
   getOtherUserName: () => string;
 }
 
-export function MessagingChatHeader({ conversation, isFinder, currentState, getOtherUserName }: MessagingChatHeaderProps) {
+export function MessagingChatHeader({
+  conversation,
+  isFinder,
+  currentState,
+  getOtherUserName,
+}: MessagingChatHeaderProps) {
   const getStateDescription = () => {
     switch (currentState) {
       case 'initial':

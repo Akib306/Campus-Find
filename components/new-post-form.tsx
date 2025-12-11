@@ -286,6 +286,7 @@ export function NewPostForm() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {imagePreviews.map((src, idx) => (
                     <div key={src} className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={src}
                         alt={`Preview ${idx + 1}`}
@@ -307,6 +308,7 @@ export function NewPostForm() {
                 </div>
               ) : (
                 <div className="relative inline-block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={defaultImageSrc}
                     alt="Preview"
