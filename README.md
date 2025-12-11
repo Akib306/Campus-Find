@@ -10,10 +10,13 @@ A Next.js + Supabase app for finding and claiming lost-and-found items on campus
 
 ## Prerequisites
 - Node.js 18.18+ (recommended: 22.x LTS)
+  - https://nodejs.org/en/download
 - pnpm (latest recommended)
+  - https://pnpm.io/installation
 - Git
 - Supabase account (for a hosted project) and/or Supabase CLI for local development
   - Supabase CLI: ^2.53.6
+    - https://supabase.com/docs/guides/local-development/cli/getting-started?queryGroups=platform&platform=npm&queryGroups=access-method&access-method=analytics
 
 Check your versions:
 ```bash
