@@ -22,6 +22,11 @@ pnpm -v
 supabase --version
 ```
 
+If you use `nvm`, select a compatible Node:
+```bash
+nvm use 22 || nvm install 22
+```
+
 ---
 
 ## Environment Variables
@@ -30,23 +35,13 @@ Create a `.env.local` at the project root with your Supabase project values:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_or_publishable_key
 ```
-
-Notes:
-- Never commit secrets. `.env.local` is ignored by default.
-- For SSR/auth stability with Supabase, this app creates the client per-request (see `lib/supabase/`).
-
 ---
 
 ## Install
 ```bash
-git clone <repo-url>
+git clone https://git.cs.usask.ca/nzy764/cmpt-370-final-project.git
 cd campus-find
 pnpm install
-```
-
-If you use `nvm`, select a compatible Node:
-```bash
-nvm use 22 || nvm install 22
 ```
 
 ---
@@ -69,16 +64,37 @@ By default, the app starts on port 3000.
 
 ---
 
-## Optional: Local Supabase (for local DB + Auth)
-You can run Supabase locally to apply the provided migrations in `supabase/migrations/`.
+## Supabase Backend Setup
+
+CampusFind uses Supabase for authentication, database, storage, and real-time features.
+
+### Option A — Use the hosted Supabase project (recommended for graders)
+
+This is the fastest way to run the app exactly like the deployed version.
+
+1. Create a `.env.local` file at the project root (if you haven’t already).
+2. Add the following environment variables (Note: we know that this is bad practice, 
+but for the sake of this project, it just makes the setup faster.)
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://fgitxgfwkdmduybokvis.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnaXR4Z2Z3a2RtZHV5Ym9rdmlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0NjA3MDYsImV4cCI6MjA3NjAzNjcwNn0.5c-1WM4D7bBYVgwErBWVu06BaME_rEknHpJLjpUgA20
+```
+
+3. Start the app with `pnpm dev` (development) or `pnpm start` (after `pnpm build`). No additional Supabase setup or migrations are required for this option.
+
+### Option B — Run Supabase locally (for local DB + Auth)
+
+You can run Supabase locally to apply the provided migrations in `supabase/migrations/` if you want a fully local setup.
+
 ```bash
 # start local Supabase (Docker required)
-supabase start
+pnpm supabase start
 
 # reset and apply all migrations to local database
-supabase db reset --local
+pnpm supabase db reset --local
 ```
-Update `.env.local` with your local Supabase URL and anon key (printed by `supabase start`) to develop fully offline.
+Then update `.env.local` with your local Supabase URL and anon key (printed by `supabase start`) to develop fully offline.
 
 ---
 

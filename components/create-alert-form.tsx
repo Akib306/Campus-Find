@@ -27,6 +27,12 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => voi
 
     const handleCreation = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!category) {
+            alert("Please select a category.");
+            return;
+        }
+        
         const supabase = createClient();
         setIsLoading(true);
         try {

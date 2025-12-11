@@ -9,6 +9,7 @@ import { NewPostForm } from "./new-post-form";
 import { NotificationBell } from "./notification-bell";
 import { Search } from "@/components/search";
 import { useSearch } from "@/components/search-context";
+import { MessageSquare } from "lucide-react";
 
 export function Navbar({
   variant = "landing",
@@ -48,6 +49,13 @@ export function Navbar({
             <EnvVarWarning />
           ) : isDashboard ? (
             <>
+              <Link 
+                href="/messaging" 
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Messages
+              </Link>
               <NewPostForm />
               <AlertModal />
               <NotificationBell />

@@ -1,43 +1,22 @@
 'use client';
-
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { MessagingService, Conversation } from '@/lib/messaging-service';
+import { Conversation } from '@/lib/messaging-service';
 
 interface MessagingConversationListProps {
+  conversations: Conversation[];
   onSelectConversation: (conversation: Conversation) => void;
   currentConversationId?: string;
 }
 
-export function MessagingConversationList({ onSelectConversation, currentConversationId }: MessagingConversationListProps) {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadConversations();
-  }, []);
-
-  const loadConversations = async () => {
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) return;
-
-      const userConversations = await MessagingService.getUserConversations(user.id);
-      setConversations(userConversations);
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) return <div className="p-4 text-gray-900">Loading conversations...</div>;
+export function MessagingConversationList({ 
+  conversations, 
+  onSelectConversation, 
+  currentConversationId 
+}: MessagingConversationListProps) {
+  console.log('📋 Conversations passed to list:', conversations);
 
   if (conversations.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-900">
+      <div className="p-4 text-center text-muted-foreground">
         No conversations yet. Claim an item to start messaging!
       </div>
     );
@@ -48,21 +27,37 @@ export function MessagingConversationList({ onSelectConversation, currentConvers
       {conversations.map((conversation) => (
         <div
           key={conversation.id}
-          className={`p-4 border rounded-lg cursor-pointer hover:bg-gray-50 text-gray-900 ${
-            conversation.id === currentConversationId ? 'bg-blue-50 border-blue-200' : 'border-gray-200'
+          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+            conversation.id === currentConversationId
+              ? 'bg-primary/10 border-primary/40 text-foreground'
+              : 'bg-card border-border text-foreground hover:bg-muted'
           }`}
           onClick={() => onSelectConversation(conversation)}
         >
           <div className="font-semibold text-sm">
-            Conversation about Item
+            Conversation {conversation.id.slice(0, 8)}...
           </div>
-          <div className="text-xs text-gray-600 mt-1">
-            Last updated: {new Date(conversation.updated_at).toLocaleDateString()}
+          <div className="text-xs text-muted-foreground mt-1">
+            {conversation.arranged_location ? (
+              <>
+                📍 {conversation.arranged_location}
+                {conversation.arranged_time && ` • 🕒 ${conversation.arranged_time}`}
+              </>
+            ) : (
+              `Last updated: ${new Date(conversation.updated_at).toLocaleDateString()}`
+            )}
           </div>
-          <div className={`text-xs mt-1 ${
-            conversation.status === 'active' ? 'text-green-600' : 'text-gray-500'
-          }`}>
+          <div
+            className={`text-xs mt-1 ${
+              conversation.status === 'active'
+                ? 'text-primary'
+                : conversation.status === 'completed'
+                ? 'text-muted-foreground'
+                : 'text-accent-foreground'
+            }`}
+          >
             {conversation.status}
+            {conversation.item_picked_up && ' • ✅ Returned'}
           </div>
         </div>
       ))}

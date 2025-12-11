@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { MessagingService, Conversation } from '@/lib/messaging-service';
 import { MessagingConversationList } from '@/components/messaging-conversation-list';
@@ -12,6 +13,7 @@ export default function MessagingPage() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     loadUserAndConversations();
@@ -26,6 +28,15 @@ export default function MessagingPage() {
         setUser(user);
         const userConversations = await MessagingService.getUserConversations(user.id);
         setConversations(userConversations);
+
+        // Auto-select conversation from URL parameter
+        const conversationId = searchParams.get('conversation');
+        if (conversationId) {
+          const conversationToSelect = userConversations.find(conv => conv.id === conversationId);
+          if (conversationToSelect) {
+            setSelectedConversation(conversationToSelect);
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -34,71 +45,26 @@ export default function MessagingPage() {
     }
   };
 
-  const handleCreateTestConversation = async () => {
-    if (!user) return;
-
-    try {
-      // Simple test without post updates
-      const TEMPORARY_TEST_POST_ID = '00000000-0000-0000-0000-000000000000';
-      
-      const supabase = createClient();
-      const { data: conversation, error: convError } = await supabase
-        .from('conversations')
-        .insert({
-          post_id: TEMPORARY_TEST_POST_ID,
-          user1_id: user.id,
-          user2_id: user.id,
-          status: 'active'
-        })
-        .select(`
-          *,
-          user1_profile:user1_id(username, email),
-          user2_profile:user2_id(username, email)
-        `)
-        .single();
-
-      if (convError) throw convError;
-
-      const { data: message, error: msgError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversation.id,
-          message_type: 'claim_initial',
-          display_text: 'Hello, I believe this is my lost item',
-          sender_id: user.id
-        })
-        .select()
-        .single();
-
-      if (msgError) throw msgError;
-
-      setConversations(prev => [conversation, ...prev]);
-      setSelectedConversation(conversation);
-    } catch (error) {
-      console.error('Error creating test conversation:', error);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-gray-900">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
+        <div className="text-lg text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-gray-900">
-        <div className="text-lg">Please log in to test messaging</div>
+      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
+        <div className="text-lg text-muted-foreground">Please log in to view messages</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl text-gray-900">
+    <div className="container mx-auto p-6 max-w-6xl text-foreground">
       <h1 className="text-3xl font-bold mb-2">Messages</h1>
-      <p className="text-gray-600 mb-6">
+      <p className="text-muted-foreground mb-6">
         Coordinate item returns with other users
       </p>
 
@@ -106,15 +72,10 @@ export default function MessagingPage() {
         {/* Left Sidebar - Conversations */}
         <div className="lg:col-span-1">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Conversations</h2>
-            <button
-              onClick={handleCreateTestConversation}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-            >
-              + Test Conversation
-            </button>
+            <h2 className="text-xl font-semibold">Your Conversations ({conversations.length})</h2>
           </div>
           <MessagingConversationList
+            conversations={conversations}
             onSelectConversation={setSelectedConversation}
             currentConversationId={selectedConversation?.id}
           />
@@ -129,9 +90,13 @@ export default function MessagingPage() {
           {selectedConversation ? (
             <MessagingChatInterface conversation={selectedConversation} currentUser={user!} />
           ) : (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <div className="text-gray-500">
-                Select a conversation from the list or create a test conversation to start messaging.
+            <div className="border border-dashed border-border rounded-lg p-8 text-center bg-card">
+              <div className="text-muted-foreground">
+                Select a conversation from the list to start messaging.
+                <br />
+                <span className="text-sm">
+                  Claim an item on the listings page to start a new conversation.
+                </span>
               </div>
             </div>
           )}
