@@ -43,7 +43,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_or_publishable_key
 ## Install
 ```bash
 git clone https://git.cs.usask.ca/nzy764/cmpt-370-final-project.git
-cd campus-find
+cd cmpt-370-final-project
 pnpm install
 ```
 
