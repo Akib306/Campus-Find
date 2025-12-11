@@ -17,27 +17,31 @@ export function MessagingPickupModal({ // ADDED 'export'
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-80 max-w-sm border border-gray-300">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900">Confirm Item Return</h3>
-        <p className="mb-4 text-sm text-gray-700">Enter the 6-digit pickup code provided by the claimant:</p>
+      <div className="bg-card text-card-foreground rounded-lg p-6 w-80 max-w-sm border border-border">
+        <h3 className="text-lg font-semibold mb-4">Confirm Item Return</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Enter the 6-digit pickup code provided by the claimant:
+        </p>
         <input
           type="text"
           value={pickupCode}
-          onChange={(e) => onPickupCodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          onChange={(e) =>
+            onPickupCodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))
+          }
           placeholder="123456"
-          className="w-full p-2 border border-gray-400 rounded mb-4 text-center text-lg font-mono text-gray-900 bg-white"
+          className="w-full p-2 border border-input rounded mb-4 text-center text-lg font-mono text-foreground bg-background"
         />
         <div className="flex gap-2">
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+            className="flex-1 px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={pickupCode.length !== 6}
           >
             Confirm Return
           </button>
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+            className="flex-1 px-4 py-2 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
           >
             Cancel
           </button>

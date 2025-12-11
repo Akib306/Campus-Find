@@ -274,10 +274,16 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     return isFinder ? 'Claimant' : 'Finder';
   };
 
-  if (loading) return <div className="p-4 text-gray-900 bg-white">Loading messages...</div>;
+  if (loading) {
+    return (
+      <div className="p-4 bg-card text-card-foreground">
+        Loading messages...
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-96 border border-gray-300 rounded-lg bg-white">
+    <div className="flex flex-col h-96 border border-border rounded-lg bg-card text-card-foreground">
       <MessagingChatHeader 
         conversation={conversation}
         isFinder={isFinder}
@@ -291,7 +297,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         messagesEndRef={messagesEndRef}
       />
 
-      <div className="p-4 border-t border-gray-300 bg-gray-50">
+      <div className="p-4 border-t border-border bg-muted">
         <MessagingActionButtons
           currentState={currentState}
           isFinder={isFinder}

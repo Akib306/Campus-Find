@@ -27,9 +27,11 @@ export function MessagingMessagesArea({ messages, currentUser, messagesEndRef }:
   };
 
   return (
-    <div className="flex-1 p-4 overflow-y-auto bg-white">
+    <div className="flex-1 p-4 overflow-y-auto bg-background">
       {messages.length === 0 ? (
-        <div className="text-center text-gray-700">No messages yet. Start the conversation!</div>
+        <div className="text-center text-muted-foreground">
+          No messages yet. Start the conversation!
+        </div>
       ) : (
         <div className="space-y-3">
           {messages.map((message) => {
@@ -39,18 +41,18 @@ export function MessagingMessagesArea({ messages, currentUser, messagesEndRef }:
             return (
               <div
                 key={message.id}
-                className={`p-3 rounded-lg max-w-xs ${
-                  message.sender_id === currentUser.id 
-                    ? 'bg-blue-100 ml-auto border border-blue-200 text-gray-900' 
+                className={`p-3 rounded-lg max-w-xs border ${
+                  message.sender_id === currentUser.id
+                    ? 'ml-auto bg-primary/10 border-primary/40 text-foreground'
                     : message.message_type === 'system'
-                    ? 'bg-yellow-100 text-gray-900 border border-yellow-300 text-center'
-                    : 'bg-gray-100 text-gray-900 border border-gray-200'
+                    ? 'bg-accent text-accent-foreground border-accent/60 text-center'
+                    : 'bg-muted text-foreground border-border'
                 }`}
               >
                 <div className="text-sm whitespace-pre-line">
                   {content}
                 </div>
-                <div className="text-xs text-gray-600 mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   {new Date(message.created_at).toLocaleTimeString()}
                 </div>
               </div>

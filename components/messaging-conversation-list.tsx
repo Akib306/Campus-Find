@@ -16,7 +16,7 @@ export function MessagingConversationList({
 
   if (conversations.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-900">
+      <div className="p-4 text-center text-muted-foreground">
         No conversations yet. Claim an item to start messaging!
       </div>
     );
@@ -27,15 +27,17 @@ export function MessagingConversationList({
       {conversations.map((conversation) => (
         <div
           key={conversation.id}
-          className={`p-4 border rounded-lg cursor-pointer hover:bg-gray-50 text-gray-900 ${
-            conversation.id === currentConversationId ? 'bg-blue-50 border-blue-200' : 'border-gray-200'
+          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+            conversation.id === currentConversationId
+              ? 'bg-primary/10 border-primary/40 text-foreground'
+              : 'bg-card border-border text-foreground hover:bg-muted'
           }`}
           onClick={() => onSelectConversation(conversation)}
         >
           <div className="font-semibold text-sm">
             Conversation {conversation.id.slice(0, 8)}...
           </div>
-          <div className="text-xs text-gray-600 mt-1">
+          <div className="text-xs text-muted-foreground mt-1">
             {conversation.arranged_location ? (
               <>
                 📍 {conversation.arranged_location}
@@ -45,10 +47,15 @@ export function MessagingConversationList({
               `Last updated: ${new Date(conversation.updated_at).toLocaleDateString()}`
             )}
           </div>
-          <div className={`text-xs mt-1 ${
-            conversation.status === 'active' ? 'text-green-600' : 
-            conversation.status === 'completed' ? 'text-gray-500' : 'text-orange-500'
-          }`}>
+          <div
+            className={`text-xs mt-1 ${
+              conversation.status === 'active'
+                ? 'text-primary'
+                : conversation.status === 'completed'
+                ? 'text-muted-foreground'
+                : 'text-accent-foreground'
+            }`}
+          >
             {conversation.status}
             {conversation.item_picked_up && ' • ✅ Returned'}
           </div>

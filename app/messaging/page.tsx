@@ -47,24 +47,24 @@ export default function MessagingPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-gray-900">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
+        <div className="text-lg text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-gray-900">
-        <div className="text-lg">Please log in to view messages</div>
+      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
+        <div className="text-lg text-muted-foreground">Please log in to view messages</div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl text-gray-900">
+    <div className="container mx-auto p-6 max-w-6xl text-foreground">
       <h1 className="text-3xl font-bold mb-2">Messages</h1>
-      <p className="text-gray-600 mb-6">
+      <p className="text-muted-foreground mb-6">
         Coordinate item returns with other users
       </p>
 
@@ -90,8 +90,8 @@ export default function MessagingPage() {
           {selectedConversation ? (
             <MessagingChatInterface conversation={selectedConversation} currentUser={user!} />
           ) : (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <div className="text-gray-500">
+            <div className="border border-dashed border-border rounded-lg p-8 text-center bg-card">
+              <div className="text-muted-foreground">
                 Select a conversation from the list to start messaging.
                 <br />
                 <span className="text-sm">

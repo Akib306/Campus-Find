@@ -27,13 +27,13 @@ export function MessagingActionButtons({ // ADDED 'export'
         <div className="flex gap-2">
           <button
             onClick={onArrangePickup}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             Arrange Pickup
           </button>
           <button
             onClick={onShareContact}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
           >
             Share Contact
           </button>
@@ -43,12 +43,12 @@ export function MessagingActionButtons({ // ADDED 'export'
     case 'waiting_confirmation':
       return (
         <div className="text-center">
-          <div className="text-sm text-gray-600 mb-2">
+          <div className="text-sm text-muted-foreground mb-2">
             ⏳ Waiting for the other person to confirm your meeting suggestion...
           </div>
           <button
             onClick={onSuggestAlternative}
-            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+            className="px-4 py-2 rounded-lg bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
           >
             Suggest Different Time/Location
           </button>
@@ -60,19 +60,19 @@ export function MessagingActionButtons({ // ADDED 'export'
         <div className="flex gap-2">
           <button
             onClick={onConfirm}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             Confirm Meeting
           </button>
           <button
             onClick={onSuggestAlternative}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 rounded-lg bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
           >
             Suggest Alternative
           </button>
           <button
             onClick={onShareContact}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
           >
             Share Contact
           </button>
@@ -84,10 +84,10 @@ export function MessagingActionButtons({ // ADDED 'export'
         <div className="space-y-3">
           {/* Show pickup code for CLAIMANT */}
           {isClaimant && claimantPickupCode && (
-            <div className="bg-green-100 border border-green-300 rounded-lg p-3 text-center">
-              <div className="text-sm font-semibold text-green-800">Your Pickup Code</div>
-              <div className="text-2xl font-mono font-bold text-green-900 my-2">{claimantPickupCode}</div>
-              <div className="text-xs text-green-700">
+            <div className="rounded-lg p-3 text-center border border-primary/40 bg-primary/10">
+              <div className="text-sm font-semibold text-primary">Your Pickup Code</div>
+              <div className="text-2xl font-mono font-bold text-foreground my-2">{claimantPickupCode}</div>
+              <div className="text-xs text-muted-foreground">
                 Give this code to the finder when you meet
               </div>
             </div>
@@ -95,14 +95,14 @@ export function MessagingActionButtons({ // ADDED 'export'
           
           {/* Show pickup instruction for FINDER */}
           {isFinder && (
-            <div className="bg-blue-100 border border-blue-300 rounded-lg p-3 text-center">
-              <div className="text-sm font-semibold text-blue-800">Pickup Instructions</div>
-              <div className="text-xs text-blue-700 mb-2">
+            <div className="rounded-lg p-3 text-center border border-accent/60 bg-accent/20">
+              <div className="text-sm font-semibold text-foreground">Pickup Instructions</div>
+              <div className="text-xs text-muted-foreground mb-2">
                 Ask the claimant for the pickup code and enter it below
               </div>
               <button
                 onClick={onShowPickupModal}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 Enter Pickup Code
               </button>
@@ -112,7 +112,7 @@ export function MessagingActionButtons({ // ADDED 'export'
           <div className="flex gap-2 justify-center">
             <button
               onClick={onShareContact}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
             >
               Share Contact
             </button>
@@ -123,7 +123,7 @@ export function MessagingActionButtons({ // ADDED 'export'
     case 'completed':
       return (
         <div className="text-center">
-          <div className="text-sm text-green-600">
+          <div className="text-sm text-primary">
             ✅ Item successfully returned!
           </div>
         </div>

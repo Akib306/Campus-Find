@@ -34,7 +34,7 @@ export function MessagingTimePicker({ isOpen, onClose, onTimeSelect }: Messaging
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-80 max-w-sm max-h-96 overflow-y-auto text-gray-900">
+      <div className="bg-card text-card-foreground rounded-lg p-6 w-80 max-w-sm max-h-96 overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">Choose Time Slot</h3>
         
         {loading ? (
@@ -44,7 +44,7 @@ export function MessagingTimePicker({ isOpen, onClose, onTimeSelect }: Messaging
             {timeSlots.map((timeSlot) => (
               <button
                 key={timeSlot.id}
-                className="w-full p-3 text-left border border-gray-200 rounded-lg hover:bg-gray-50 focus:bg-gray-50 focus:outline-none text-gray-900"
+                className="w-full p-3 text-left border border-border rounded-lg hover:bg-muted focus:bg-muted focus:outline-none text-foreground"
                 onClick={() => onTimeSelect(timeSlot)}
               >
                 <div className="font-medium">{timeSlot.display_text}</div>
@@ -54,7 +54,7 @@ export function MessagingTimePicker({ isOpen, onClose, onTimeSelect }: Messaging
         )}
         
         <button
-          className="w-full mt-4 p-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+          className="w-full mt-4 p-2 text-muted-foreground border border-border rounded-lg hover:bg-muted"
           onClick={onClose}
         >
           Cancel

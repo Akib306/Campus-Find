@@ -28,20 +28,20 @@ export function MessagingChatHeader({ conversation, isFinder, currentState, getO
   };
 
   return (
-    <div className="p-4 border-b border-gray-300 bg-gray-50">
-      <h3 className="font-semibold text-gray-900">
+    <div className="p-4 border-b border-border bg-muted">
+      <h3 className="font-semibold text-foreground">
         Chat with {getOtherUserName()}
       </h3>
-      <div className="text-sm text-gray-600 mt-1">
+      <div className="text-sm text-muted-foreground mt-1">
         {getStateDescription()}
       </div>
       {conversation.arranged_location && conversation.arranged_time && (
-        <div className="text-sm text-gray-700 mt-1">
+        <div className="text-sm text-muted-foreground mt-1">
           📍 {conversation.arranged_location} • 🕒 {conversation.arranged_time}
         </div>
       )}
       {conversation.item_picked_up && (
-        <div className="text-xs text-green-600 mt-1">
+        <div className="text-xs text-primary mt-1">
           ✅ Item successfully returned
         </div>
       )}
