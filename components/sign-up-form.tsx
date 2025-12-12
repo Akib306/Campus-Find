@@ -79,7 +79,8 @@ export function SignUpForm({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/protected`,
+          // Exchange the confirmation code for a cookie session, then send user to landing.
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
         },
       });
       if (signUpError) throw signUpError;
