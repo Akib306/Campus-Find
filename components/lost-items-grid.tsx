@@ -453,6 +453,11 @@ export function LostItemsGrid({
                 <p className="text-sm font-medium text-foreground">
                   {post.posting_user?.username ?? "Anonymous user"}
                 </p>
+                {userReliabilityByUserId.get(post.user_id)?.is_new_user ? (
+                  <Badge variant="secondary" className="text-[10px] py-0">
+                    New User
+                  </Badge>
+                ) : null}
                 <p className="ml-auto text-xs text-muted-foreground">
                   Helped{" "}
                   {userReliabilityByUserId.get(post.user_id)?.helpful_posts ?? 0}{" "}
