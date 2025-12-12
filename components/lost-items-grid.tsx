@@ -459,9 +459,12 @@ export function LostItemsGrid({
                   </Badge>
                 ) : null}
                 <p className="ml-auto text-xs text-muted-foreground">
-                  Helped{" "}
-                  {userReliabilityByUserId.get(post.user_id)?.helpful_posts ?? 0}{" "}
-                  people
+                  {(() => {
+                    const helped = userReliabilityByUserId.get(post.user_id)?.helpful_posts ?? 0;
+                    return helped === 1
+                      ? "Helped 1 person."
+                      : `Helped ${helped} people.`;
+                  })()}
                 </p>
               </div>
 
