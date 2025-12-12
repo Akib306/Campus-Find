@@ -211,7 +211,9 @@ export function LostItemsGrid({
 
     const next: Record<string, boolean | undefined> = {};
     for (const row of data) {
-      next[row.post_id as string] = Boolean(row.is_helpful);
+      // Only treat explicit "helpful" as a marker. Legacy `is_helpful=false` rows
+      // should behave like "no marker" (undefined) for UI + reliability purposes.
+      next[row.post_id as string] = row.is_helpful === true ? true : undefined;
     }
     setMyVotesByPostId((prev) => ({ ...prev, ...next }));
   }
@@ -240,36 +242,33 @@ export function LostItemsGrid({
       setVoteBusyByPostId((prev) => ({ ...prev, [post.id]: true }));
       const current = myVotesByPostId[post.id];
       try {
-        if (current === isHelpful) {
-          // clicking again removes the vote
+        // - "Yes" marks the post as helpful (idempotent; not a toggle).
+        // - "No" removes that marker (clears the vote row).
+        if (isHelpful) {
+          if (current === true) return; // already marked helpful
+          const { error } = await supabase
+            .from("post_helpfulness_votes")
+            .upsert(
+              { post_id: post.id, voter_id: myUserId, is_helpful: true },
+              { onConflict: "post_id,voter_id" }
+            );
+          if (error) throw error;
+          setMyVotesByPostId((prev) => ({ ...prev, [post.id]: true }));
+        } else {
+          const didRemoveHelpfulVote = current === true;
           const { error } = await supabase
             .from("post_helpfulness_votes")
             .delete()
             .match({ post_id: post.id, voter_id: myUserId });
           if (error) throw error;
           setMyVotesByPostId((prev) => ({ ...prev, [post.id]: undefined }));
-        } else if (current === undefined) {
-          const { error } = await supabase
-            .from("post_helpfulness_votes")
-            .upsert(
-              { post_id: post.id, voter_id: myUserId, is_helpful: isHelpful },
-              { onConflict: "post_id,voter_id" }
-            );
-          if (error) throw error;
-          setMyVotesByPostId((prev) => ({ ...prev, [post.id]: isHelpful }));
-        } else {
-          const { error } = await supabase
-            .from("post_helpfulness_votes")
-            .update({ is_helpful: isHelpful })
-            .match({ post_id: post.id, voter_id: myUserId });
-          if (error) throw error;
-          setMyVotesByPostId((prev) => ({ ...prev, [post.id]: isHelpful }));
+
+          // Refresh reliability only if a helpful marker was actually removed.
+          if (!didRemoveHelpfulVote) return;
         }
 
         // Refresh reliability for the post author so the "people helped" number updates
-        const updatedMap = await fetchReliabilityForUsers(supabase, [
-          post.user_id,
-        ]);
+        const updatedMap = await fetchReliabilityForUsers(supabase, [post.user_id]);
         setUserReliabilityByUserId((prev) => {
           const merged = new Map(prev);
           for (const [key, value] of updatedMap.entries()) {
@@ -486,7 +485,7 @@ export function LostItemsGrid({
                     Yes
                   </Button>
                   <Button
-                    variant={myVotesByPostId[post.id] === false ? "secondary" : "ghost"}
+                    variant="ghost"
                     size="sm"
                     onClick={() => handleVote(post, false)}
                     disabled={
