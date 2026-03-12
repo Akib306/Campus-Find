@@ -1,4 +1,3 @@
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Navbar } from "@/components/navbar";
 import { SearchProvider } from "@/components/search-context";
 import { createClient } from "@/lib/supabase/server";
@@ -30,8 +29,8 @@ export default async function ProtectedLayout({
             {children}
           </div>
   
-          <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-            <ThemeSwitcher />
+          <footer className="w-full border-t py-6">
+            <p className="text-center text-xs text-muted-foreground">&copy; {new Date().getFullYear()} CampusFind &mdash; Helping students reunite with their lost belongings.</p>
           </footer>
         </div>
       </main>

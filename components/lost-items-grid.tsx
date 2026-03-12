@@ -166,7 +166,7 @@ export function LostItemsGrid({
       }
 
     } catch (err: unknown) {
-      console.error("Full Error Object:", JSON.stringify(err, null, 2));
+      console.error("Full Error Object:", err);
       setError(
         err instanceof Error ? err.message : "Failed to fetch lost items"
       );
