@@ -411,8 +411,9 @@ export function LostItemsGrid({
   return (
     <div className="w-full space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-        {posts.map((post) => {
+        {posts.map((post, index) => {
           const hasImages = Boolean(post.image_path && post.image_path.length > 0);
+          const isAboveFold = index < 3;
 
           return (
             <Card
@@ -434,6 +435,7 @@ export function LostItemsGrid({
                               fill
                               className="object-cover"
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                              priority={isAboveFold}
                             />
                             {post.image_path.length > 1 && (
                               <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">

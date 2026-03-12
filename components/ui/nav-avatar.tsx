@@ -31,12 +31,17 @@ export function NavAvatar({ user }: { user: NavAvatarUser }) {
     <div className="flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Avatar className="cursor-pointer">
-            {user.avatarUrl && (
-              <AvatarImage src={user.avatarUrl} alt={user.email} />
-            )}
-            <AvatarFallback>{fallback}</AvatarFallback>
-          </Avatar>
+          <button
+            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="User menu"
+          >
+            <Avatar className="cursor-pointer">
+              {user.avatarUrl && (
+                <AvatarImage src={user.avatarUrl} alt={user.email} />
+              )}
+              <AvatarFallback>{fallback}</AvatarFallback>
+            </Avatar>
+          </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" align="end" className="bg-card">
           <DropdownMenuLabel>Hey, {user.email}!</DropdownMenuLabel>

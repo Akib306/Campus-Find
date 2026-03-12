@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusIcon } from "lucide-react";
 import { toast } from "sonner";
+import NextImage from "next/image";
 
 const defaultImageSrc = "./project-screenshot.png";
 const MAX_IMAGES = 5;
@@ -307,12 +308,13 @@ export function NewPostForm() {
                   ))}
                 </div>
               ) : (
-                <div className="relative inline-block">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                <div className="relative inline-block max-w-xs h-48">
+                  <NextImage
                     src={defaultImageSrc}
-                    alt="Preview"
-                    className="max-w-xs max-h-48 object-contain rounded border"
+                    alt="Default preview"
+                    width={320}
+                    height={192}
+                    className="object-contain rounded border"
                   />
                 </div>
               )}

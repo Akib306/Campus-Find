@@ -72,7 +72,7 @@
     --popover-foreground: 0 0% 3.9%;
     /* USask Primary (Green #006341 -> hsl(158, 100%, 19%)) */
     --primary: 158 100% 19%;
-    --primary-foreground: 0 0% 98%;
+    --primary-foreground: 0 0% 100%;
     /* Secondary: soft neutral gray for subtle emphasis on light background */
     --secondary: 0 0% 92%;
     --secondary-foreground: 0 0% 9%;
@@ -103,9 +103,9 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    /* Keep green as primary in dark, slightly lighter for contrast */
-    --primary: 158 100% 30%;
-    --primary-foreground: 0 0% 98%;
+    /* USask green darkened for WCAG AA contrast (≥4.5:1) with white text */
+    --primary: 158 100% 22%;
+    --primary-foreground: 0 0% 100%;
     /* Secondary: dark neutral for controls in dark mode */
     --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 95%;

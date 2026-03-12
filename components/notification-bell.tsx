@@ -138,6 +138,7 @@ export function NotificationBell() {
         <Button
           variant="ghost"
           className="relative px-0 hover:bg-accent rounded-md"
+          aria-label="Notifications"
         >
           <Bell className="size-8" />
           {/* A badge, visible only when there are unread notifications. */}
