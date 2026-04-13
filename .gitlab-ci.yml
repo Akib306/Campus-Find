@@ -1,6 +1,6 @@
 image: node:22-alpine
 
-stages: [deploy]
+stages: [deploy, ping]
 
 variables:
   PRODUCTION_URL: https://campus-find-three.vercel.app/
@@ -24,3 +24,28 @@ deploy_production:
   environment:
     name: production
     url: $PRODUCTION_URL
+
+keep_supabase_alive:
+  stage: ping
+  image: alpine:latest
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "Pinging Supabase to prevent free-tier shutdown..."
+    - |
+      rest=$(curl -s -o /dev/null -w "%{http_code}" \
+        "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/" \
+        -H "apikey: $NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" \
+        -H "Authorization: Bearer $NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
+      echo "REST API response: $rest"
+    - |
+      auth=$(curl -s -o /dev/null -w "%{http_code}" \
+        "$NEXT_PUBLIC_SUPABASE_URL/auth/v1/health")
+      echo "Auth health response: $auth"
+    - |
+      storage=$(curl -s -o /dev/null -w "%{http_code}" \
+        "$NEXT_PUBLIC_SUPABASE_URL/storage/v1/health/ready")
+      echo "Storage health response: $storage"
+    - echo "Supabase project pinged successfully."
