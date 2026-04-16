@@ -1,14 +1,10 @@
-image: node:22-alpine
-
-stages: [deploy, ping]
-
 variables:
   PRODUCTION_URL: https://campus-find-three.vercel.app/
 
 deploy_production:
-  stage: deploy
+  image: node:22-alpine
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE != "schedule"'
   script:
     - set -eu
     - npx -y vercel@latest whoami --token "$VERCEL_TOKEN"
@@ -26,7 +22,6 @@ deploy_production:
     url: $PRODUCTION_URL
 
 keep_supabase_alive:
-  stage: ping
   image: alpine:latest
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
