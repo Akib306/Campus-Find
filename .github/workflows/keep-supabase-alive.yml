@@ -1,0 +1,97 @@
+name: Keep Supabase Alive
+
+# Supabase pauses free-tier projects after a week of inactivity. A simple
+# REST ping is no longer enough to count as "activity" for the auth service,
+# so this workflow also performs a real password sign-in against a dedicated
+# keep-alive account every 5 days.
+#
+# The credentials below are intentionally kept in plaintext because:
+#   1. This repository is private.
+#   2. The account is a throwaway used solely to generate auth traffic.
+#   3. Storing them as secrets would add friction without any real benefit
+#      given (1) and (2).
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every 5 days of the month (1, 6, 11, 16, 21, 26, 31).
+    # GitHub Actions cron does not support a true "every 5 days" interval, so
+    # this is the closest standard approximation.
+    - cron: "0 0 */5 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Supabase + auth sign-in
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      KEEPALIVE_EMAIL: nzy764@usask.ca
+      KEEPALIVE_PASSWORD: "12345678"
+    steps:
+      - name: REST API ping
+        run: |
+          set -eu
+          rest=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "REST API response: $rest"
+
+      - name: Auth health ping
+        run: |
+          set -eu
+          auth=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/auth/v1/health")
+          echo "Auth health response: $auth"
+
+      - name: Storage health ping
+        run: |
+          set -eu
+          storage=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/storage/v1/health/ready")
+          echo "Storage health response: $storage"
+
+      - name: Auth sign-in (real password grant)
+        run: |
+          set -eu
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            --data "{\"email\":\"$KEEPALIVE_EMAIL\",\"password\":\"$KEEPALIVE_PASSWORD\"}")
+
+          status=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Auth sign-in status: $status"
+
+          if [ "$status" != "200" ]; then
+            echo "Auth sign-in failed:"
+            echo "$body"
+            exit 1
+          fi
+
+          access_token=$(echo "$body" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+          refresh_token=$(echo "$body" | sed -n 's/.*"refresh_token":"\([^"]*\)".*/\1/p')
+
+          if [ -z "$access_token" ]; then
+            echo "Sign-in returned 200 but no access_token was found in the body."
+            exit 1
+          fi
+
+          echo "Sign-in succeeded; received access + refresh tokens."
+
+          # Cleanly sign the session out so we don't leave an orphan refresh
+          # token sitting around on every run.
+          if [ -n "$refresh_token" ]; then
+            logout_status=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST "$SUPABASE_URL/auth/v1/logout" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $access_token" \
+              -H "Content-Type: application/json")
+            echo "Logout status: $logout_status"
+          fi
+
+      - name: Done
+        run: echo "Supabase keep-alive completed successfully."
