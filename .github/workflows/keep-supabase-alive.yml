@@ -24,8 +24,12 @@ jobs:
     name: Ping Supabase + auth sign-in
     runs-on: ubuntu-latest
     env:
-      SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      # Hardcoded on purpose: this is a private repo, the URL is a public
+      # domain, and SUPABASE_ANON_KEY is the project's publishable key
+      # (NEXT_PUBLIC_*) — it is shipped to every browser that loads the
+      # site, so there is no secrecy benefit to vaulting it.
+      SUPABASE_URL: https://fgitxgfwkdmduybokvis.supabase.co
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnaXR4Z2Z3a2RtZHV5Ym9rdmlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0NjA3MDYsImV4cCI6MjA3NjAzNjcwNn0.5c-1WM4D7bBYVgwErBWVu06BaME_rEknHpJLjpUgA20
       KEEPALIVE_EMAIL: nzy764@usask.ca
       KEEPALIVE_PASSWORD: "12345678"
     steps:
