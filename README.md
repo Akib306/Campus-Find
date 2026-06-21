@@ -4,7 +4,6 @@ A Next.js + Supabase app for finding and claiming lost-and-found items on campus
 
 ## Live Resources
 - ### PRODUCTION: https://campus-find-three.vercel.app/
-- ### Presentation: https://docs.google.com/presentation/d/1MdBNZC3A6L-B2VWjRbE2f90GAi3fChZ1YET77xTsxXw/edit?usp=sharing
 
 ---
 
