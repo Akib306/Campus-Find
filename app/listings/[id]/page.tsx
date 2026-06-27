@@ -164,10 +164,13 @@ export default function ListingPage() {
               {post.image_path && post.image_path.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {post.image_path.map((imageUrl, index) => (
-                    <div
+                    <Button
                       key={index}
-                      className="relative w-full h-64 rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity"
+                      type="button"
+                      variant="ghost"
+                      className="relative h-64 w-full overflow-hidden rounded-lg bg-muted p-0 hover:bg-muted hover:opacity-90"
                       onClick={() => handleImageClick(index)}
+                      aria-label={`Open image ${index + 1} of ${post.image_path.length}`}
                     >
                       <Image
                         src={imageUrl}
@@ -176,7 +179,7 @@ export default function ListingPage() {
                         className="object-cover"
                         sizes="(max-width: 768px) 100vw, 50vw"
                       />
-                    </div>
+                    </Button>
                   ))}
                 </div>
               ) : (

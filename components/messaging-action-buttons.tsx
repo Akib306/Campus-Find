@@ -1,3 +1,14 @@
+import {
+  CheckCircle2,
+  Clock3,
+  Contact,
+  MapPinned,
+  RefreshCcw,
+  ShieldCheck,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+
 interface MessagingActionButtonsProps {
   currentState: string;
   isFinder: boolean;
@@ -10,7 +21,7 @@ interface MessagingActionButtonsProps {
   onShowPickupModal: () => void;
 }
 
-export function MessagingActionButtons({ // ADDED 'export'
+export function MessagingActionButtons({
   currentState,
   isFinder,
   isClaimant,
@@ -19,63 +30,74 @@ export function MessagingActionButtons({ // ADDED 'export'
   onShareContact,
   onSuggestAlternative,
   onConfirm,
-  onShowPickupModal
+  onShowPickupModal,
 }: MessagingActionButtonsProps) {
   switch (currentState) {
     case 'initial':
       return (
-        <div className="flex gap-2">
-          <button
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
             onClick={onArrangePickup}
-            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
+            <MapPinned className="h-4 w-4" />
             Arrange Pickup
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
             onClick={onShareContact}
-            className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
           >
+            <Contact className="h-4 w-4" />
             Share Contact
-          </button>
+          </Button>
         </div>
       );
 
     case 'waiting_confirmation':
       return (
-        <div className="text-center">
-          <div className="text-sm text-muted-foreground mb-2">
-            ⏳ Waiting for the other person to confirm your meeting suggestion...
+        <div className="space-y-3 text-center">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Clock3 className="h-4 w-4" />
+            <span>Waiting for the other person to confirm your meeting suggestion.</span>
           </div>
-          <button
+          <Button
+            type="button"
+            variant="outline"
             onClick={onSuggestAlternative}
-            className="px-4 py-2 rounded-lg bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
           >
+            <RefreshCcw className="h-4 w-4" />
             Suggest Different Time/Location
-          </button>
+          </Button>
         </div>
       );
 
     case 'suggesting_alternative':
       return (
-        <div className="flex gap-2">
-          <button
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
             onClick={onConfirm}
-            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
+            <CheckCircle2 className="h-4 w-4" />
             Confirm Meeting
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
             onClick={onSuggestAlternative}
-            className="px-4 py-2 rounded-lg bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
           >
+            <RefreshCcw className="h-4 w-4" />
             Suggest Alternative
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
             onClick={onShareContact}
-            className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
           >
+            <Contact className="h-4 w-4" />
             Share Contact
-          </button>
+          </Button>
         </div>
       );
 
@@ -84,7 +106,7 @@ export function MessagingActionButtons({ // ADDED 'export'
         <div className="space-y-3">
           {/* Show pickup code for CLAIMANT */}
           {isClaimant && claimantPickupCode && (
-            <div className="rounded-lg p-3 text-center border border-primary/40 bg-primary/10">
+            <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-center">
               <div className="text-sm font-semibold text-primary">Your Pickup Code</div>
               <div className="text-2xl font-mono font-bold text-foreground my-2">{claimantPickupCode}</div>
               <div className="text-xs text-muted-foreground">
@@ -95,37 +117,41 @@ export function MessagingActionButtons({ // ADDED 'export'
           
           {/* Show pickup instruction for FINDER */}
           {isFinder && (
-            <div className="rounded-lg p-3 text-center border border-accent/60 bg-accent/20">
-              <div className="text-sm font-semibold text-foreground">Pickup Instructions</div>
+            <div className="rounded-lg border border-accent/60 bg-accent/20 p-3 text-center">
+              <div className="text-sm font-semibold text-foreground">
+                Pickup Instructions
+              </div>
               <div className="text-xs text-muted-foreground mb-2">
                 Ask the claimant for the pickup code and enter it below
               </div>
-              <button
+              <Button
+                type="button"
                 onClick={onShowPickupModal}
-                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
+                <ShieldCheck className="h-4 w-4" />
                 Enter Pickup Code
-              </button>
+              </Button>
             </div>
           )}
           
           <div className="flex gap-2 justify-center">
-            <button
+            <Button
+              type="button"
+              variant="secondary"
               onClick={onShareContact}
-              className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
             >
+              <Contact className="h-4 w-4" />
               Share Contact
-            </button>
+            </Button>
           </div>
         </div>
       );
 
     case 'completed':
       return (
-        <div className="text-center">
-          <div className="text-sm text-primary">
-            ✅ Item successfully returned!
-          </div>
+        <div className="flex items-center justify-center gap-2 text-sm text-primary">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>Item successfully returned.</span>
         </div>
       );
 

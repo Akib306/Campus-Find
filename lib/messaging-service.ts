@@ -8,7 +8,6 @@ export interface Conversation {
   status: string;
   arranged_location?: string;
   arranged_time?: string;
-  claim_code?: string;
   item_picked_up?: boolean;
   picked_up_at?: string;
   created_at: string;
@@ -46,24 +45,28 @@ export class MessagingService {
   // Claim an item and start conversation
   static async claimItem(postId: string, claimantId: string, itemOwnerId: string) {
     const supabase = createClient();
+    let claimedPost = false;
+    let conversationId: string | null = null;
+
+    const releaseClaim = async () => {
+      if (!claimedPost) return;
+      await supabase.rpc('release_pending_claim', {
+        p_post_id: postId
+      });
+    };
+
     try {
-      console.log('🔄 Starting claim process...', { postId, claimantId, itemOwnerId });
-      
-      // Update posts table
-      const { error: postError } = await supabase
-        .from('posts')
-        .update({
-          claimed_by_user_id: claimantId,
-          claimed_at: new Date().toISOString()
-        })
-        .eq('id', postId);
+      const { error: postError } = await supabase.rpc('claim_post', {
+        p_post_id: postId,
+        p_item_owner_id: itemOwnerId
+      });
+
       if (postError) {
-        console.error('❌ Post update error:', JSON.stringify(postError, null, 2));
         throw postError;
       }
-      console.log('✅ Post updated successfully');
-      
-      // Create conversation
+
+      claimedPost = true;
+
       const { data: conversation, error: convError } = await supabase
         .from('conversations')
         .insert({
@@ -74,13 +77,12 @@ export class MessagingService {
         })
         .select()
         .single();
+
       if (convError) {
-        console.error('❌ Conversation creation error:', JSON.stringify(convError, null, 2));
         throw convError;
       }
-      console.log('✅ Conversation created:', conversation.id);
-      
-      // Send initial claim message using actual table schema
+      conversationId = conversation.id;
+
       const { data: message, error: msgError } = await supabase
         .from('messages')
         .insert({
@@ -93,14 +95,29 @@ export class MessagingService {
         })
         .select()
         .single();
+
       if (msgError) {
-        console.error('❌ Message creation error:', JSON.stringify(msgError, null, 2));
         throw msgError;
       }
-      console.log('✅ Initial message sent:', message.id);
+
       return { conversation, message };
     } catch (error) {
-      console.error('❌ Error in claimItem:', JSON.stringify(error, null, 2));
+      try {
+        if (conversationId) {
+          await supabase.rpc('delete_empty_conversation', {
+            p_conversation_id: conversationId
+          });
+        }
+      } catch {
+        // Best-effort cleanup only.
+      }
+
+      try {
+        await releaseClaim();
+      } catch {
+        // Best-effort cleanup only.
+      }
+
       throw error;
     }
   }
@@ -156,8 +173,6 @@ export class MessagingService {
       console.error('No authenticated user found');
       throw new Error('Not authenticated');
     }
-    console.log('Sending message:', { conversationId, messageType, content, displayText, userId: currentUser.id });
-    
     // Generate display text if not provided
     const finalDisplayText = displayText || this.generateDisplayText(messageType, content);
     try {
@@ -177,8 +192,7 @@ export class MessagingService {
         console.error('Error inserting message:', error);
         throw error;
       }
-      console.log('Message sent successfully:', message);
-      
+
       // Update conversation timestamp
       await supabase
         .from('conversations')
@@ -191,208 +205,45 @@ export class MessagingService {
     }
   }
 
-  // Confirm meeting and use existing claim code from posts
-  static async confirmMeeting(conversationId: string, meetingDetails: string, userId: string) {
+  // Confirm meeting and create a private pickup code for the claimant
+  static async confirmMeeting(conversationId: string, meetingDetails: string) {
     const supabase = createClient();
-    
-    console.log('🔍 Getting existing claim code from post...');
-    
-    // First get the conversation to find the post_id
-    const { data: conversation, error: convError } = await supabase
-      .from('conversations')
-      .select('post_id')
-      .eq('id', conversationId)
-      .single();
-    
-    if (convError || !conversation) {
-      console.error('❌ Error fetching conversation:', convError);
-      throw new Error('Could not find conversation');
-    }
-    
-    // Then get the claim_code from the posts table
-    const { data: post, error: postError } = await supabase
-      .from('posts')
-      .select('claim_code')
-      .eq('id', conversation.post_id)
-      .single();
-    
-    if (postError || !post) {
-      console.error('❌ Error fetching post:', postError);
-      throw new Error('Could not find post');
-    }
-    
-    if (!post.claim_code) {
-      console.error('❌ No claim code found in post:', post);
-      throw new Error('Post does not have a claim code');
-    }
-    
-    // Use the existing claim code from the post
-    const claimCode = post.claim_code;
-    console.log('✅ Using existing claim code:', claimCode);
-    
+
     // Parse meeting details (format: "Location, Time Slot")
-    const [location, timeSlot] = meetingDetails.split(',').map(s => s.trim());
-    
-    console.log('🔄 Updating conversation with claim code...');
-    
-    // Update conversation with code and meeting details - with better error handling
-    const { data: updatedConversation, error: updateError } = await supabase
-      .from('conversations')
-      .update({
-        arranged_location: location,
-        arranged_time: timeSlot,
-        claim_code: claimCode, // Use existing code from post
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', conversationId)
-      .select()
-      .single();
-      
-    if (updateError) {
-      console.error('❌ Error updating conversation:', updateError);
-      throw updateError;
+    const [locationPart, ...timeParts] = meetingDetails.split(',');
+    const location = locationPart?.trim();
+    const timeSlot = timeParts.join(',').trim();
+
+    if (!location || !timeSlot) {
+      throw new Error('Meeting details must include a location and time slot');
     }
-    
-    console.log('✅ Conversation updated with claim code:', updatedConversation.claim_code);
-    
-    // Send confirmation message
-    const confirmationText = `✅ Meeting Confirmed!\n📍 ${location}\n🕒 ${timeSlot}`;
-    await this.sendMenuMessage(
-      conversationId,
-      'confirmation',
-      meetingDetails,
-      confirmationText,
-      userId
-    );
-    
-    // Get conversation to determine users
-    const { data: finalConversation } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('id', conversationId)
-      .single();
-    
-    if (finalConversation) {
-      try {
-        // Send pickup code to the claimant (user who claimed the item)
-        const claimantId = finalConversation.user2_id;
-        const finderId = finalConversation.user1_id;
-        
-        // Send pickup code message to CLAIMANT (private system message)
-        const codeMessage = `🔐 Your Pickup Code: ${claimCode}\n\nGive this 6-digit code to the finder when you meet to verify the return.`;
-        await supabase
-          .from('messages')
-          .insert({
-            conversation_id: conversationId,
-            message_type: 'system',
-            content: codeMessage,
-            display_text: codeMessage,
-            sender_id: claimantId, // Show as sent by claimant (but it's system)
-            is_read: false,
-            private: true // Mark as private so only claimant sees it
-          });
-        
-        // Send instruction message to FINDER (private system message)
-        const instructionMessage = `🔐 Please ask the claimant for the pickup code when you meet and enter it in the app to confirm the return.`;
-        await supabase
-          .from('messages')
-          .insert({
-            conversation_id: conversationId,
-            message_type: 'system',
-            content: instructionMessage,
-            display_text: instructionMessage,
-            sender_id: finderId, // Show as sent by finder (but it's system)
-            is_read: false,
-            private: true // Mark as private so only finder sees it
-          });
-          
-        console.log('✅ Private system messages sent');
-      } catch (systemMessageError) {
-        console.error('Error sending system messages:', systemMessageError);
-        // Don't throw here - the main confirmation was successful
-        // Just log the error but continue
-      }
+
+    const { error } = await supabase.rpc('confirm_meeting', {
+      p_conversation_id: conversationId,
+      p_meeting_details: meetingDetails,
+      p_location: location,
+      p_time_slot: timeSlot
+    });
+
+    if (error) {
+      throw error;
     }
-    
-    return { claimCode };
+
+    return { confirmed: true };
   }
 
   // Confirm item pickup with verification code (called by finder ONLY)
-  static async confirmPickup(conversationId: string, enteredCode: string, userId: string) {
+  static async confirmPickup(conversationId: string, enteredCode: string) {
     const supabase = createClient();
-    
-    console.log('🔐 Verifying pickup code:', { 
-      conversationId, 
-      enteredCode
+
+    const { error } = await supabase.rpc('confirm_pickup', {
+      p_conversation_id: conversationId,
+      p_entered_code: enteredCode
     });
-    
-    // Get the conversation with claim_code
-    const { data: conversation, error: fetchError } = await supabase
-      .from('conversations')
-      .select('claim_code, user1_id')
-      .eq('id', conversationId)
-      .single();
-    
-    if (fetchError) {
-      console.error('❌ Error fetching conversation:', fetchError);
-      throw new Error('Conversation not found');
+
+    if (error) {
+      throw error;
     }
-    
-    // Verify user is the finder (user1_id)
-    if (conversation.user1_id !== userId) {
-      throw new Error('Only the item owner can confirm pickup');
-    }
-    
-    console.log('📋 Stored claim_code:', conversation.claim_code);
-    
-    // Clean both codes for comparison (remove any non-digits)
-    const cleanEnteredCode = enteredCode.replace(/\D/g, '').trim();
-    const cleanStoredCode = conversation.claim_code ? 
-      conversation.claim_code.toString().replace(/\D/g, '').trim() : '';
-    
-    console.log('🔍 Code comparison:', {
-      cleanedEntered: cleanEnteredCode,
-      cleanedStored: cleanStoredCode,
-      match: cleanEnteredCode === cleanStoredCode
-    });
-    
-    // Verify code matches
-    if (!cleanStoredCode || cleanEnteredCode !== cleanStoredCode) {
-      throw new Error('Invalid pickup code');
-    }
-    
-    // Update conversation
-    const { data: updatedConversation, error: updateError } = await supabase
-      .from('conversations')
-      .update({
-        item_picked_up: true,
-        picked_up_at: new Date().toISOString(),
-        status: 'completed',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', conversationId)
-      .select()
-      .single();
-      
-    if (updateError) {
-      console.error('❌ Error updating conversation:', updateError);
-      throw new Error('Error updating conversation');
-    }
-    
-    console.log('✅ Pickup confirmed successfully');
-    
-    // Send verification completed message to both users
-    const completionTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const completionText = `✅ Verification completed! Item successfully returned.\nReturn confirmed at ${completionTime}`;
-    
-    await this.sendMenuMessage(
-      conversationId,
-      'system',
-      completionText,
-      completionText
-    );
-    
-    return updatedConversation;
   }
 
   // Get pickup options
@@ -411,14 +262,14 @@ export class MessagingService {
   // Generate display text based on message type
   private static generateDisplayText(messageType: string, content?: string): string {
     const templates: Record<string, string> = {
-      'claim_initial': '👋 Hello, I believe this is my lost item',
-      'suggestion': `📍 Suggested: ${content}`,
-      'confirmation': `✅ Confirmed: ${content}`,
-      'share_contact': '📞 Shared contact information',
-      'system': content || '📢 System message',
-      'share_email': content || '📧 Shared email address'
+      'claim_initial': 'Hello, I believe this is my lost item',
+      'suggestion': `Suggested: ${content}`,
+      'confirmation': `Confirmed: ${content}`,
+      'share_contact': 'Shared contact information',
+      'system': content || 'System message',
+      'share_email': content || 'Shared email address'
     };
-    return templates[messageType] || content || '💬 Message';
+    return templates[messageType] || content || 'Message';
   }
 
   // Get user email from database
@@ -440,7 +291,7 @@ export class MessagingService {
   static async shareContact(conversationId: string, userId: string) {
     try {
       const userEmail = await this.getUserEmail(userId);
-      const contactMessage = `📧 My email address is: ${userEmail}`;
+      const contactMessage = `My email address is: ${userEmail}`;
       
       await this.sendMenuMessage(
         conversationId,
@@ -616,39 +467,18 @@ export class MessagingService {
   }
 
   // Get claimant pickup code
-  static async getClaimantPickupCode(conversationId: string, userId: string): Promise<string | null> {
+  static async getClaimantPickupCode(conversationId: string): Promise<string | null> {
     const supabase = createClient();
-    const { data: conversation, error } = await supabase
-      .from('conversations')
-      .select('claim_code, user2_id')
-      .eq('id', conversationId)
-      .single();
+    const { data, error } = await supabase.rpc('get_claimant_pickup_code', {
+      p_conversation_id: conversationId
+    });
+
     if (error) {
       console.error('Error getting pickup code:', error);
       return null;
     }
-    // Only return the code if the current user is the claimant
-    if (conversation.user2_id === userId) {
-      return conversation.claim_code;
-    }
-    return null;
+
+    return data ? String(data) : null;
   }
 
-  // Debug method to check conversation data
-  static async debugConversation(conversationId: string) {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('id', conversationId)
-      .single();
-    
-    if (error) {
-      console.error('Debug error:', error);
-      return null;
-    }
-    
-    console.log('🔍 Conversation debug:', data);
-    return data;
-  }
 }

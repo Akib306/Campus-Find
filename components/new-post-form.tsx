@@ -21,17 +21,11 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusIcon } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ImagePlus, PlusIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import NextImage from "next/image";
 
-const defaultImageSrc = "./project-screenshot.png";
 const MAX_IMAGES = 5;
-
-// Helper function to generate claim code as integer
-function generateClaimCode(): number {
-  return Math.floor(100000 + Math.random() * 900000); // 6-digit random code as integer
-}
 
 export function NewPostForm() {
   const [itemName, setItemName] = useState("");
@@ -45,9 +39,22 @@ export function NewPostForm() {
   const [success, setSuccess] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imagePreviewsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    imagePreviewsRef.current = imagePreviews;
+  }, [imagePreviews]);
+
+  useEffect(() => {
+    return () => {
+      imagePreviewsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files ?? []);
+    const newFiles = Array.from(e.target.files ?? []).filter((file) =>
+      file.type.startsWith("image/")
+    );
     if (newFiles.length === 0) return;
     setError(null);
     setSelectedFiles((prev) => {
@@ -110,9 +117,7 @@ export function NewPostForm() {
       if (!user) {
         throw new Error("You must be logged in to post items");
       }
-      // Step 1: Generate claim code as integer
-      const claimCode = generateClaimCode();
-      // Step 2: Create the post first (without images) to get a post ID
+      // Step 1: Create the post first (without images) to get a post ID
       const { data: insertedPost, error: insertError } = await supabase
         .from("posts")
         .insert([
@@ -124,16 +129,15 @@ export function NewPostForm() {
             location_name: locationName,
             image_path: [],
             post_status: "open",
-            claim_code: claimCode, // Add claim code here as integer
           },
         ])
-        .select("id, claim_code")
+        .select("id")
         .single();
       if (insertError || !insertedPost) {
         throw new Error(insertError?.message || "Failed to create post");
       }
       const postId = insertedPost.id as string;
-      // Step 3: Upload all selected images (if any) to storage under {postId}/
+      // Step 2: Upload all selected images (if any) to storage under {postId}/
       const uploadedPaths: string[] = [];
       if (selectedFiles.length > 0) {
         for (const file of selectedFiles) {
@@ -162,12 +166,12 @@ export function NewPostForm() {
           uploadedPaths.push(storagePath);
         }
       }
-      // Step 4: Resolve public URLs for all uploaded images
+      // Step 3: Resolve public URLs for all uploaded images
       const publicUrls: string[] = uploadedPaths.map((p) => {
         const { data } = supabase.storage.from("post-images").getPublicUrl(p);
         return data.publicUrl;
       });
-      // Step 5: Update the post with the image URL array
+      // Step 4: Update the post with the image URL array
       const { error: updateError } = await supabase
         .from("posts")
         .update({ image_path: publicUrls })
@@ -209,7 +213,6 @@ export function NewPostForm() {
   useEffect(() => {
     if (success) {
       toast.success("Lost item posted successfully!");
-      console.log("Lost item posted successfully!");
     }
   }, [success]);
 
@@ -241,9 +244,8 @@ export function NewPostForm() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
-              <Input
+              <Textarea
                 id="description"
-                type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
@@ -264,7 +266,7 @@ export function NewPostForm() {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="last_seen">Location</Label>
+              <Label htmlFor="lastlocation">Location</Label>
               <Input
                 id="lastlocation"
                 type="text"
@@ -301,6 +303,7 @@ export function NewPostForm() {
                           size="sm"
                           className="w-full"
                         >
+                          <Trash2 className="h-4 w-4" />
                           Remove
                         </Button>
                       </div>
@@ -308,14 +311,9 @@ export function NewPostForm() {
                   ))}
                 </div>
               ) : (
-                <div className="relative inline-block max-w-xs h-48">
-                  <NextImage
-                    src={defaultImageSrc}
-                    alt="Default preview"
-                    width={320}
-                    height={192}
-                    className="object-contain rounded border"
-                  />
+                <div className="flex h-48 max-w-xs flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-muted/40 text-muted-foreground">
+                  <ImagePlus className="h-8 w-8" />
+                  <span className="text-sm">No images selected</span>
                 </div>
               )}
               {imagePreviews.length > 0 && (

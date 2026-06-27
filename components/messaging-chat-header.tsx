@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckCircle2, Clock3, MapPin } from "lucide-react";
+
 import type { Conversation } from "@/lib/messaging-service";
 
 interface MessagingChatHeaderProps {
@@ -48,13 +50,21 @@ export function MessagingChatHeader({
         {getStateDescription()}
       </div>
       {conversation.arranged_location && conversation.arranged_time && (
-        <div className="text-sm text-muted-foreground mt-1">
-          📍 {conversation.arranged_location} • 🕒 {conversation.arranged_time}
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-4 w-4" />
+            {conversation.arranged_location}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Clock3 className="h-4 w-4" />
+            {conversation.arranged_time}
+          </span>
         </div>
       )}
       {conversation.item_picked_up && (
-        <div className="text-xs text-primary mt-1">
-          ✅ Item successfully returned
+        <div className="mt-2 inline-flex items-center gap-1 text-xs text-primary">
+          <CheckCircle2 className="h-3 w-3" />
+          Item successfully returned
         </div>
       )}
     </div>

@@ -11,6 +11,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -171,21 +172,18 @@ export default function ListingsSearchFilter() {
           <h2 className="font-semibold mb-3">Categories</h2>
           <div className="flex flex-col gap-2">
             {(Object.keys(CATEGORY_LABELS) as CategoryKey[]).map((key) => (
-              <button
+              <Button
                 key={key}
                 type="button"
+                variant={selectedCategory === key ? "default" : "outline"}
                 onClick={() => setSelectedCategory(key)}
-                className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm border ${
-                  selectedCategory === key
-                    ? "bg-emerald-700 text-white border-emerald-700"
-                    : "bg-background hover:bg-muted"
-                }`}
+                className="h-auto w-full justify-between"
               >
                 <span>{CATEGORY_LABELS[key]}</span>
-                <span className="text-xs rounded-full px-2 py-0.5 bg-black/10 dark:bg-white/10">
+                <Badge variant="secondary" className="ml-2">
                   {key === "all" ? categoryCounts.all : categoryCounts[key] ?? 0}
-                </span>
-              </button>
+                </Badge>
+              </Button>
             ))}
           </div>
         </aside>

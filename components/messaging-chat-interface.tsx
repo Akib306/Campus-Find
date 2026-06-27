@@ -10,6 +10,7 @@ import { MessagingPickupModal } from './messaging-pickup-modal';
 import { MessagingLocationPicker } from './messaging-location-picker';
 import { MessagingTimePicker } from './messaging-time-picker';
 import type { User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
 interface MessagingChatInterfaceProps {
   conversation: Conversation;
@@ -48,9 +49,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     
     // Real-time subscription for messages
     const supabase = createClient();
-    
-    console.log('🔔 Setting up real-time subscription for conversation:', conversation.id);
-    
+
     const subscription = supabase
       .channel(`conversation:${conversation.id}`)
       .on(
@@ -61,22 +60,17 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
           table: 'messages',
           filter: `conversation_id=eq.${conversation.id}`
         },
-        async (payload) => {
-          console.log('📨 Real-time update received:', payload);
+        (payload) => {
           const newMessage = payload.new as Message;
-          console.log('🆕 New message to add:', newMessage);
           
           // Only add non-private messages or private messages for current user
           if (!newMessage.private || (newMessage.private && newMessage.sender_id === currentUser.id)) {
             setMessages(prev => {
               const exists = prev.some(msg => msg.id === newMessage.id);
               if (exists) {
-                console.log('⚠️ Message already exists, skipping...');
                 return prev;
               }
-              const updated = [...prev, newMessage];
-              console.log('📊 Messages after update:', updated);
-              return updated;
+              return [...prev, newMessage];
             });
           }
 
@@ -86,15 +80,9 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
           }, 100);
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Real-time subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to real-time updates');
-        }
-      });
+      .subscribe();
 
     return () => {
-      console.log('🧹 Cleaning up real-time subscription');
       supabase.removeChannel(subscription);
     };
   }, [conversation.id, router, currentUser.id]);
@@ -134,13 +122,13 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
   const loadClaimantPickupCode = useCallback(async () => {
     if (isClaimant && currentState === 'confirmed') {
       try {
-        const code = await MessagingService.getClaimantPickupCode(conversation.id, currentUser.id);
+        const code = await MessagingService.getClaimantPickupCode(conversation.id);
         setClaimantPickupCode(code);
       } catch (error) {
         console.error('Error loading pickup code:', error);
       }
     }
-  }, [isClaimant, currentState, conversation.id, currentUser.id]);
+  }, [isClaimant, currentState, conversation.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -150,9 +138,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
 
   const loadMessages = async () => {
     try {
-      console.log('📥 Loading messages for conversation:', conversation.id);
       const conversationMessages = await MessagingService.getConversationMessages(conversation.id, currentUser.id);
-      console.log('📨 Messages loaded:', conversationMessages);
       setMessages(conversationMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -181,7 +167,6 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
     try {
       // Send the suggestion message
       const suggestionText = `${selectedLocation?.display_text}, ${timeSlot.display_text}`;
-      console.log('Sending pickup suggestion:', suggestionText);
       
       await MessagingService.sendMenuMessage(
         conversation.id,
@@ -214,13 +199,10 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
         );
 
       if (lastSuggestionFromOther && lastSuggestionFromOther.content) {
-        console.log('Confirming meeting with details:', lastSuggestionFromOther.content);
-        
         // Use the full confirm method to send proper system messages
         await MessagingService.confirmMeeting(
           conversation.id,
-          lastSuggestionFromOther.content,
-          currentUser.id
+          lastSuggestionFromOther.content
         );
         
         // Update state to confirmed
@@ -233,7 +215,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       }
     } catch (error) {
       console.error('Error confirming meeting:', error);
-      alert('Error confirming meeting. Please try again.');
+      toast.error('Error confirming meeting. Please try again.');
     }
   };
 
@@ -249,13 +231,13 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       router.refresh();
     } catch (error) {
       console.error('Error sharing contact:', error);
-      alert('Error sharing contact information. Please try again.');
+      toast.error('Error sharing contact information. Please try again.');
     }
   };
 
   const handleConfirmPickup = async () => {
     try {
-      await MessagingService.confirmPickup(conversation.id, pickupCode, currentUser.id);
+      await MessagingService.confirmPickup(conversation.id, pickupCode);
       setShowPickupConfirm(false);
       setPickupCode('');
       setCurrentState('completed');
@@ -263,7 +245,7 @@ export function MessagingChatInterface({ conversation, currentUser }: MessagingC
       router.refresh();
     } catch (error) {
       console.error('Error confirming pickup:', error);
-      alert('Invalid pickup code. Please check and try again.');
+      toast.error('Invalid pickup code. Please check and try again.');
     }
   };
 

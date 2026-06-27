@@ -1,8 +1,11 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { MessagingService } from '@/lib/messaging-service';
-import { useState, useEffect } from 'react';
 
 interface PostData {
   user_id: string;
@@ -19,9 +22,12 @@ interface ClaimItemButtonProps {
 export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimItemButtonProps) {
   const router = useRouter();
   const [isAlreadyClaimed, setIsAlreadyClaimed] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
   const [postData, setPostData] = useState<PostData | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchPostData = async () => {
       const supabase = createClient();
       const { data: post } = await supabase
@@ -30,6 +36,7 @@ export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimIt
         .eq('id', postId)
         .single();
 
+      if (!isMounted) return;
       setPostData(post);
 
       if (post?.claimed_by_user_id) {
@@ -38,12 +45,17 @@ export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimIt
     };
 
     void fetchPostData();
-  }, [postId, postOwnerId]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [postId]);
 
   const handleClaimItem = async () => {
     try {
+      setIsClaiming(true);
       if (isAlreadyClaimed) {
-        alert('This item has already been claimed by someone else.');
+        toast.error('This item has already been claimed by someone else.');
         return;
       }
 
@@ -51,7 +63,7 @@ export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimIt
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        alert('Please log in to claim an item');
+        toast.error('Please log in to claim an item.');
         return;
       }
 
@@ -59,12 +71,12 @@ export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimIt
       const actualPostOwnerId = postOwnerId || postData?.user_id;
       
       if (!actualPostOwnerId) {
-        alert('Error: Could not determine post owner. Please try again.');
+        toast.error('Could not determine the post owner. Please try again.');
         return;
       }
 
       if (user.id === actualPostOwnerId) {
-        alert('You cannot claim your own item');
+        toast.error('You cannot claim your own item.');
         return;
       }
 
@@ -82,27 +94,33 @@ export function ClaimItemButton({ postId, postOwnerId, className = '' }: ClaimIt
       console.error('Error claiming item:', error);
       const message =
         error instanceof Error ? error.message : 'Please try again.';
-      alert('Error claiming item: ' + message);
+      toast.error(`Error claiming item: ${message}`);
+    } finally {
+      setIsClaiming(false);
     }
   };
 
   if (isAlreadyClaimed) {
     return (
-      <button
+      <Button
+        type="button"
+        variant="secondary"
         disabled
-        className={`px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed ${className}`}
+        className={className}
       >
         Already Claimed
-      </button>
+      </Button>
     );
   }
 
   return (
-    <button
+    <Button
+      type="button"
       onClick={handleClaimItem}
-      className={`px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors ${className}`}
+      disabled={isClaiming}
+      className={className}
     >
-      THIS IS MINE!
-    </button>
+      {isClaiming ? 'Claiming...' : 'This is mine'}
+    </Button>
   );
 }

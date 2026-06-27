@@ -2,8 +2,17 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import DashboardClient from "@/components/dashboard-client";
+import { hasEnvVars } from "@/lib/utils";
 
 export default async function DashboardPage() {
+  if (!hasEnvVars) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center text-center text-muted-foreground">
+        Supabase environment variables are required to load dashboard data.
+      </div>
+    );
+  }
+
   const supabase = await createClient();
 
   const { data: authData, error: authError } = await supabase.auth.getClaims();

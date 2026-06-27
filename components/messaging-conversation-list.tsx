@@ -1,5 +1,10 @@
 'use client';
-import { Conversation } from '@/lib/messaging-service';
+
+import { CheckCircle2, MapPin } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import type { Conversation } from '@/lib/messaging-service';
+import { cn } from '@/lib/utils';
 
 interface MessagingConversationListProps {
   conversations: Conversation[];
@@ -12,8 +17,6 @@ export function MessagingConversationList({
   onSelectConversation, 
   currentConversationId 
 }: MessagingConversationListProps) {
-  console.log('📋 Conversations passed to list:', conversations);
-
   if (conversations.length === 0) {
     return (
       <div className="p-4 text-center text-muted-foreground">
@@ -25,41 +28,51 @@ export function MessagingConversationList({
   return (
     <div className="space-y-2">
       {conversations.map((conversation) => (
-        <div
+        <Button
           key={conversation.id}
-          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+          type="button"
+          variant="outline"
+          className={cn(
+            'h-auto w-full flex-col items-start justify-start whitespace-normal p-4 text-left',
             conversation.id === currentConversationId
-              ? 'bg-primary/10 border-primary/40 text-foreground'
-              : 'bg-card border-border text-foreground hover:bg-muted'
-          }`}
+              ? 'border-primary/40 bg-primary/10 text-foreground'
+              : 'bg-card text-foreground hover:bg-muted'
+          )}
           onClick={() => onSelectConversation(conversation)}
         >
-          <div className="font-semibold text-sm">
+          <span className="text-sm font-semibold">
             Conversation {conversation.id.slice(0, 8)}...
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
+          </span>
+          <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
             {conversation.arranged_location ? (
               <>
-                📍 {conversation.arranged_location}
-                {conversation.arranged_time && ` • 🕒 ${conversation.arranged_time}`}
+                <MapPin className="h-3 w-3" />
+                {conversation.arranged_location}
+                {conversation.arranged_time && ` • ${conversation.arranged_time}`}
               </>
             ) : (
               `Last updated: ${new Date(conversation.updated_at).toLocaleDateString()}`
             )}
-          </div>
-          <div
-            className={`text-xs mt-1 ${
+          </span>
+          <span
+            className={cn(
+              'mt-1 flex items-center gap-1 text-xs capitalize',
               conversation.status === 'active'
                 ? 'text-primary'
                 : conversation.status === 'completed'
                 ? 'text-muted-foreground'
                 : 'text-accent-foreground'
-            }`}
+            )}
           >
             {conversation.status}
-            {conversation.item_picked_up && ' • ✅ Returned'}
-          </div>
-        </div>
+            {conversation.item_picked_up && (
+              <>
+                <CheckCircle2 className="h-3 w-3" />
+                Returned
+              </>
+            )}
+          </span>
+        </Button>
       ))}
     </div>
   );

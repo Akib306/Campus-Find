@@ -1,7 +1,9 @@
 "use client";
 
 import { SearchIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   InputGroup,
   InputGroupAddon,
@@ -46,8 +48,18 @@ export function Search({
   const normalizedQuery = currentValue.trim().toLowerCase();
 
   useEffect(() => {
-    const saved = localStorage.getItem("recentSearches");
-    if (saved) setRecentSearches(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem("recentSearches");
+      if (!saved) return;
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        setRecentSearches(
+          parsed.filter((item): item is string => typeof item === "string"),
+        );
+      }
+    } catch {
+      localStorage.removeItem("recentSearches");
+    }
   }, []);
 
   // Only auto-close when query is cleared; don't auto-open based on value
@@ -127,7 +139,11 @@ export function Search({
     if (!term.trim()) return;
     setRecentSearches((prev) => {
       const next = [term, ...prev.filter((t) => t.toLowerCase() !== term.toLowerCase())].slice(0, 8);
-      localStorage.setItem("recentSearches", JSON.stringify(next));
+      try {
+        localStorage.setItem("recentSearches", JSON.stringify(next));
+      } catch {
+        // Ignore storage quota or privacy-mode failures.
+      }
       return next;
     });
   }
@@ -209,12 +225,14 @@ export function Search({
             if (e.key === "Enter") {
               if (highlightIndex >= 0 && visibleSuggestions[highlightIndex]) {
                 handleSuggestionClick(visibleSuggestions[highlightIndex].label);
+              } else {
+                saveRecent(currentValue);
+                setOpen(false);
               }
-              setOpen(false);
               return;
             }
 
-            if (e.key === "Enter" || e.key === "Escape") {
+            if (e.key === "Escape") {
               setOpen(false);
             } else {
               setOpen(true);
@@ -236,22 +254,22 @@ export function Search({
             <div className="px-3 py-2 text-muted-foreground">No matches</div>
           ) : (
             visibleSuggestions.map((s, idx) => (
-              <button
+              <Button
                 key={`${s.label}-${idx}`}
                 type="button"
+                variant="ghost"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSuggestionClick(s.label)}
-                className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-muted ${
+                className={`h-auto w-full justify-between whitespace-normal rounded-none px-3 py-2 text-left hover:bg-muted ${
                   idx === highlightIndex ? "bg-muted" : ""
                 }`}
               >
                 <span className="flex flex-col">
                   <span
                     className="font-medium"
-                    dangerouslySetInnerHTML={{
-                      __html: highlightMatch(s.label, normalizedQuery),
-                    }}
-                  />
+                  >
+                    {renderHighlightedLabel(s.label, normalizedQuery)}
+                  </span>
                   {(s.category || s.location) && (
                     <span className="text-xs text-muted-foreground">
                       {[s.category, s.location].filter(Boolean).join(" • ")}
@@ -259,11 +277,11 @@ export function Search({
                   )}
                 </span>
                 {s.count ? (
-                  <span className="text-[10px] rounded-full bg-muted px-2 py-0.5 text-foreground/70">
+                  <Badge variant="secondary" className="text-[10px]">
                     {s.count}
-                  </span>
+                  </Badge>
                 ) : null}
-              </button>
+              </Button>
             ))
           )}
         </div>
@@ -272,16 +290,18 @@ export function Search({
   );
 }
 
-function highlightMatch(label: string, query: string) {
+function renderHighlightedLabel(label: string, query: string): ReactNode {
   if (!query) return label;
   const index = label.toLowerCase().indexOf(query);
   if (index === -1) return label;
   const before = label.slice(0, index);
   const match = label.slice(index, index + query.length);
   const after = label.slice(index + query.length);
-  return `${escapeHtml(before)}<strong>${escapeHtml(match)}</strong>${escapeHtml(after)}`;
-}
-
-function escapeHtml(str: string) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return (
+    <>
+      {before}
+      <strong>{match}</strong>
+      {after}
+    </>
+  );
 }

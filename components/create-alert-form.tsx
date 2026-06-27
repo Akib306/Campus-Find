@@ -18,18 +18,19 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, JSX } from "react";
+import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 
-export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => void }): JSX.Element {
+export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => void }) {
     const [category, setCategory] = useState("");
     const [keyword, setKeyword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleCreation = async (e: React.FormEvent) => {
+    const handleCreation = async (e: FormEvent) => {
         e.preventDefault();
         
         if (!category) {
-            alert("Please select a category.");
+            toast.error("Please select a category.");
             return;
         }
         
@@ -49,7 +50,7 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => voi
             const MAX_ALERTS = 5; // Limit to 5 alerts per user
             
             if (count !== null && count >= MAX_ALERTS) {
-                alert(`You can only have ${MAX_ALERTS} active alerts. Please delete an existing alert first.`);
+                toast.error(`You can only have ${MAX_ALERTS} active alerts. Please delete an existing alert first.`);
                 setIsLoading(false);
                 return;
             }
@@ -74,9 +75,10 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => voi
             
             // Trigger refresh of alert list if callback exists
             onAlertCreated?.();
+            toast.success("Alert created.");
         } catch (error: unknown) {
             console.error("Error creating alert:", error);
-            alert("Failed to create alert. Please try again.");
+            toast.error("Failed to create alert. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -130,4 +132,3 @@ export function CreateAlertForm({ onAlertCreated }: { onAlertCreated?: () => voi
     </div>
   );
 }
-

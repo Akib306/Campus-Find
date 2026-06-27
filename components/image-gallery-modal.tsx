@@ -69,6 +69,7 @@ export function ImageGalleryModal({
             size="icon"
             className="absolute top-4 right-4 z-50 text-white hover:bg-white/20"
             onClick={onClose}
+            aria-label="Close gallery"
           >
             <X className="h-6 w-6" />
           </Button>
@@ -80,6 +81,7 @@ export function ImageGalleryModal({
               size="icon"
               className="absolute left-4 z-50 text-white hover:bg-white/20 h-12 w-12"
               onClick={handlePrevious}
+              aria-label="Previous image"
             >
               <ChevronLeft className="h-8 w-8" />
             </Button>
@@ -104,6 +106,7 @@ export function ImageGalleryModal({
               size="icon"
               className="absolute right-4 z-50 text-white hover:bg-white/20 h-12 w-12"
               onClick={handleNext}
+              aria-label="Next image"
             >
               <ChevronRight className="h-8 w-8" />
             </Button>
@@ -120,10 +123,14 @@ export function ImageGalleryModal({
           {images.length > 1 && (
             <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4 pb-2">
               {images.map((img, idx) => (
-                <button
+                <Button
                   key={idx}
+                  type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setCurrentIndex(idx)}
-                  className={`relative w-16 h-16 rounded overflow-hidden border-2 flex-shrink-0 ${
+                  aria-label={`View image ${idx + 1}`}
+                  className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded border-2 p-0 hover:bg-transparent ${
                     idx === currentIndex
                       ? "border-white"
                       : "border-transparent opacity-60 hover:opacity-100"
@@ -136,7 +143,7 @@ export function ImageGalleryModal({
                     className="object-cover"
                     sizes="64px"
                   />
-                </button>
+                </Button>
               ))}
             </div>
           )}

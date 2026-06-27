@@ -12,21 +12,21 @@ export function MessagingMessagesArea({ messages, currentUser, messagesEndRef }:
   const renderMessageContent = (message: Message) => {
     switch (message.message_type) {
       case 'claim_initial':
-        return '👋 Hello, I believe this is my lost item';
+        return 'Hello, I believe this is my lost item';
       case 'suggestion':
-        return `📍 ${message.display_text?.replace('📍 Suggested: ', '') || message.content?.replace('Suggested: ', '') || message.content}`;
+        return message.display_text?.replace('📍 Suggested: ', '').replace('Suggested: ', '') || message.content?.replace('Suggested: ', '') || message.content;
       case 'confirmation':
-        return `✅ ${message.display_text?.replace('✅ Confirmed: ', '') || message.content?.replace('Confirmed: ', '') || message.content}`;
+        return message.display_text?.replace('✅ Confirmed: ', '').replace('Confirmed: ', '') || message.content?.replace('Confirmed: ', '') || message.content;
       case 'system':
         // Don't show private system messages in chat
         if (message.private) return null;
-        return `📢 ${message.display_text || message.content}`;
+        return message.display_text || message.content;
       case 'share_contact':
-        return '📞 Shared contact information';
+        return 'Shared contact information';
       case 'share_email':
         return `${message.display_text || message.content}`;
       default:
-        return message.display_text || message.content || '💬 Message';
+        return message.display_text || message.content || 'Message';
     }
   };
 

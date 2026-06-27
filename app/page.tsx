@@ -12,19 +12,24 @@ import {
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { hasEnvVars } from "@/lib/utils";
 
 export default async function LandingPage() {
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
   let initialUser: { email: string; avatarUrl: string | null } | null = null;
-  if (auth.user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("avatar_url")
-      .eq("id", auth.user.id)
-      .single();
-    initialUser = { email: auth.user.email ?? "", avatarUrl: profile?.avatar_url ?? null };
+
+  if (hasEnvVars) {
+    const supabase = await createClient();
+    const { data: auth } = await supabase.auth.getUser();
+    if (auth.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", auth.user.id)
+        .single();
+      initialUser = { email: auth.user.email ?? "", avatarUrl: profile?.avatar_url ?? null };
+    }
   }
+
   return (
     <EmeraldBackground>
       <Navbar variant="landing" initialUser={initialUser} />

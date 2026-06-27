@@ -2,6 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { MessagingService, PickupOption } from '@/lib/messaging-service';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface MessagingTimePickerProps {
   isOpen: boolean;
@@ -12,54 +22,77 @@ interface MessagingTimePickerProps {
 export function MessagingTimePicker({ isOpen, onClose, onTimeSelect }: MessagingTimePickerProps) {
   const [timeSlots, setTimeSlots] = useState<PickupOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      loadTimeSlots();
+      void loadTimeSlots();
     }
   }, [isOpen]);
 
   const loadTimeSlots = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const timeOptions = await MessagingService.getPickupOptions('time_slot');
       setTimeSlots(timeOptions);
     } catch (error) {
       console.error('Error loading time slots:', error);
+      setError('Could not load time slots.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-card text-card-foreground rounded-lg p-6 w-80 max-w-sm max-h-96 overflow-y-auto">
-        <h3 className="text-lg font-semibold mb-4">Choose Time Slot</h3>
-        
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Choose Time Slot</DialogTitle>
+          <DialogDescription>
+            Select a pickup window that works for the meeting.
+          </DialogDescription>
+        </DialogHeader>
+
         {loading ? (
-          <div className="text-center">Loading time slots...</div>
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-11 w-full" />
+            ))}
+          </div>
+        ) : error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : timeSlots.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No pickup times are available.
+          </p>
         ) : (
           <div className="space-y-2">
             {timeSlots.map((timeSlot) => (
-              <button
+              <Button
                 key={timeSlot.id}
-                className="w-full p-3 text-left border border-border rounded-lg hover:bg-muted focus:bg-muted focus:outline-none text-foreground"
+                type="button"
+                variant="outline"
+                className="h-auto w-full justify-start whitespace-normal px-3 py-3 text-left"
                 onClick={() => onTimeSelect(timeSlot)}
               >
-                <div className="font-medium">{timeSlot.display_text}</div>
-              </button>
+                {timeSlot.display_text}
+              </Button>
             ))}
           </div>
         )}
-        
-        <button
-          className="w-full mt-4 p-2 text-muted-foreground border border-border rounded-lg hover:bg-muted"
-          onClick={onClose}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
+
+        <DialogFooter>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
